@@ -467,7 +467,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->type = TYPE_INT;
                   $$->number = $1;
                   //HW5:
-                  $$->register_number = utils::fresh_var();
+                  $$->register_number = utils_hw5::fresh_var();
                   
                   //HW5~
                }
