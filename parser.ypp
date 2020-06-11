@@ -1,0 +1,919 @@
+%{
+   #include "hw3_output.hpp"
+   #include <stack>
+   #include <iostream>
+   #include <map>
+   #include <string>
+   #include <vector>
+   #include <assert.h>
+   #include <set>
+   #include "structs.hpp"
+   #include "utils.hpp"
+   #include <algorithm>
+   #include <functional>
+   #include <queue>
+<<<<<<< HEAD
+
+=======
+   #include "utils.hpp"
+   #include "bp.hpp"
+   
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+   using namespace std;
+
+   extern int yylineno;
+   const string WHILE_SCOPE = "while_scope";
+   const string REGULAR_SCOPE = "regular_scope";
+   const string TYPE_INT    = "INT";
+   const string TYPE_BOOL   = "BOOL";
+   const string TYPE_BYTE   = "BYTE";
+   const string TYPE_STRING = "STRING";
+   const string TYPE_VOID = "VOID";
+   vector<map<string,pair<string, int>>>* tables;
+   stack<string>* scope_type;
+   vector<queue<string>>* insertion_orders;
+   stack<int>* offsets;
+   map<string,pair<string, int>>* t;
+
+   int yylex();
+   void yyerror(const char*);
+
+   bool name_exists_in_table(const string name,const vector<map<string, pair<string, int>>> &tables, bool is_fun=false);
+   /* Rule #8 hw's PDF */
+   string relop(string a, string b);
+   /* Rule #9 hw's PDF */
+   string log_eq(string a, string b);
+   /* Rule #10 hw's PDF */
+   string binop(string a, string b);
+   /* Rule #16 hw's PDF */
+   void check_bool_exp(string exp_type);
+   void pop_tables();
+   void pop_offsets();
+   void push_tables();
+   void push_offsets(int offset);
+   map<string,pair<string, int>> &top_tables();
+   int &top_offsets();
+   void insert(const string& name, const string& type,int offset, bool is_fun=true);
+   void yyerror(const char*);
+   void push_regular_scope();
+   void pop_scope();
+   void push_while_scope();
+   void push_top_scope();
+   bool check_while_scope();
+   void assign_type_check(string var,string exp);
+   string get_id_type(const string name, const vector<map<string, pair<string, int>>> &tables);
+   string get_current_function_return_type(const vector<queue<string>> stack_queues);
+   string vectorToString(const std::vector<string>& argTypes);
+   vector<string> split_str(string str, string delimiter);
+   void print_map_by_order(map<string, pair<string, int>> scope_map,queue<string> orders);
+
+   
+%}
+
+%union{
+   int number;
+   string* type;
+   string* op;
+   bool bool_value;
+   string* id_name;
+   string* str;
+   string* return_type;
+   Expression* expression;
+   Formal* formal;
+}
+
+%nonassoc VOID    
+%nonassoc INT     
+%nonassoc BYTE    
+%nonassoc B       
+%nonassoc BOOL    
+%nonassoc TRUE    
+%nonassoc FALSE   
+%nonassoc RETURN  
+%nonassoc IF      
+%nonassoc WHILE   
+%nonassoc BREAK   
+%nonassoc CONTINUE
+%nonassoc SC      
+%nonassoc COMMA   
+%nonassoc LBRACE  
+%nonassoc RBRACE  
+%right ASSIGN 
+%left OR   
+%left AND    
+%left <op> EQUALITY_RELOP   
+%nonassoc <op> RELATIONAL_RELOP
+%left <op> ADD_BINOP 
+%left <op> MUL_BINOP  
+%right NOT    
+%left LPAREN  
+%left RPAREN 
+%nonassoc ELSE //Take Else Before RPAREN ')'
+%nonassoc <id_name> ID      
+%nonassoc <number> NUM     
+%nonassoc <str> STRING  
+
+%type <expression> Exp
+%type <type> RetType
+%type <formal> Formals
+%type <formal> FormalsList
+%type <formal> FormalsDecl
+%type <return_type> Call
+%type <expression> ExpList
+%type <type> Type
+%%
+
+Program:       Marker1 Funcs       {
+   if(!name_exists_in_table("main",*tables,true)){
+      output::errorMainMissing();
+      exit(0);
+   }else{
+      string fun_sign = get_id_type("main" ,*tables);
+      string ret_type = fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1);
+      string function_args = fun_sign.substr(0,fun_sign.find("->"));
+      if(ret_type.compare(TYPE_VOID) || function_args.compare("()")){
+         output::errorMainMissing();
+         exit(0);
+      }
+   }
+   output::endScope();
+   print_map_by_order(tables->back(),insertion_orders->back());
+   pop_tables();
+   pop_offsets();
+<<<<<<< HEAD
+   utils_hw5::print_buffers();
+=======
+   // HW5:
+   // jump to the function main
+   // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+}
+;
+Marker1:       /*epsilon*/       {
+      push_tables();
+      push_offsets(0);
+      vector<string> args_to_print;
+      utils_hw5::start_llvm_code();
+      args_to_print.push_back(TYPE_STRING);
+      insert("print", output::makeFunctionType(TYPE_VOID, args_to_print),0, true);
+      utils_hw5::add_print_function();
+      args_to_print.clear();
+      args_to_print.push_back(TYPE_INT);
+      insert("printi", output::makeFunctionType(TYPE_VOID, args_to_print),0, true);
+      utils_hw5::add_printi_function();
+      push_regular_scope();
+}
+Funcs:         /*epsilon*/       {}
+               | FuncDecl Funcs        {}
+;
+FuncDecl:      FuncDeclPart1 FuncDeclPart2 {
+                   // HW5:
+                   // emit the code for the decleration of the function
+                  // HW5~
+                  }
+;
+FuncDeclPart1:  RetType ID LPAREN Formals RPAREN{      
+      auto function_args = split_str($4->type, ",");
+      insert(*$2,output::makeFunctionType(*$1, function_args),0, true);
+      push_tables();
+      push_offsets(top_offsets());
+      push_regular_scope();
+      
+      auto id_names = split_str($4->id_name,",");
+      auto types = split_str($4->type,",");
+
+      assert(id_names.size() == types.size());
+      auto it_names = id_names.begin();
+      auto it_types = types.begin();
+      int offset = 0;
+      while (it_names != id_names.end() || it_types != types.end()) {
+         insert(*it_names, *it_types, --offset, false);
+         it_names++;
+         it_types++;
+      } 
+      delete $1;
+      delete $2;
+      delete $4;
+}
+FuncDeclPart2:  LBRACE Statements RBRACE Marker3 {}
+RetType:       Type        {
+                  $$ = new string(*$1);
+                  delete $1;
+}
+               | VOID         {
+                  $$ = new string(TYPE_VOID);
+}
+;
+Formals:       /*epsilon*/       {
+                  $$ = new Formal();
+                  $$->type = "";
+                  $$->id_name = "";
+}
+               | FormalsList        {
+                  $$ = new Formal();
+                  $$->type = $1->type;
+                  $$->id_name = $1->id_name;
+                  delete $1;
+}
+;
+FormalsList:   FormalsDecl       {
+                  $$ = new Formal();
+                  $$->type = $1->type;
+                  $$->id_name = $1->id_name;
+                  delete $1;
+}
+               | FormalsDecl COMMA FormalsList        {
+                  $$ = new Formal();
+                  $$->type= ($1->type).append(",").append($3->type);
+                  $$->id_name= ($1->id_name).append(",").append($3->id_name);
+                  delete $1;
+                  delete $3;
+               }
+;
+FormalsDecl:   Type ID        {
+                  $$ = new Formal();
+                  $$->type = *$1;
+                  $$->id_name = *$2;
+                  delete $1;
+                  delete $2;
+}
+;
+Statements:    Statement        {}
+               | Statements Statement        {}
+;
+Statement:     
+               /* Moved here If and While roles. solving 'Dangling Else' */
+               IF LPAREN Exp RPAREN Marker2 Statement Marker3     {
+                  check_bool_exp($3->type);
+                  delete $3;
+               }
+               | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
+                  check_bool_exp($3->type);
+                  delete $3;
+               }
+               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3    {
+                  check_bool_exp($3->type);
+                  delete $3;
+               }
+               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
+                  check_bool_exp($3->type);
+                  delete $3;
+               }
+               /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
+               | LBRACE Marker2 Statements Marker3 RBRACE  {}
+               | Type ID SC         {
+                  insert(*$2,*$1, top_offsets(), false);
+                  top_offsets() += 1;
+                  delete $1;
+                  delete $2;
+               }
+               | Type ID ASSIGN Exp SC       {   
+                  assign_type_check(*$1, $4->type);
+                  insert(*$2,*$1, top_offsets(), false);
+                  top_offsets() += 1;
+                  // we need to check if the number is not larger then 255
+                  if(!TYPE_BYTE.compare(*$1) && $4->number > 255){
+                     output::errorByteTooLarge(yylineno,to_string($4->number));
+                     delete $1;
+                     delete $2;
+                     delete $4;
+                     exit(0); 
+                  }
+                  //HW5:
+                  utils_hw5::assign_id(*$2, $4->register_number);
+                  //HW5~
+                  delete $1;
+                  delete $2;
+                  delete $4;
+               }
+               | ID ASSIGN Exp SC         {
+                  assign_type_check(get_id_type(*$1, *tables), $3->type);
+                  if(!name_exists_in_table(*$1,*tables)){
+                     output::errorUndef(yylineno,*$1);
+                     delete $1;
+                     delete $3;
+                     exit(0);
+                  }
+                  // we need to check if the number is not larger then 255
+                  // TODO: check what to do with negative numbers ?
+                  if(!TYPE_BYTE.compare(get_id_type(*$1, *tables)) && $3->number > 255){
+                     output::errorByteTooLarge(yylineno,to_string($3->number));
+                     delete $1;
+                     delete $3;
+                     exit(0);
+                  }
+                  delete $1;
+                  delete $3;
+               }
+               | Call SC         {
+                  delete $1;
+               }
+               | RETURN SC       {
+                  if(get_current_function_return_type(*insertion_orders).compare(TYPE_VOID)){
+                     output::errorMismatch(yylineno);
+                     exit(0);
+                  }
+               }
+               | RETURN Exp SC         {
+                  string current_fun_return_type = get_current_function_return_type(*insertion_orders);
+                  if(current_fun_return_type.compare($2->type) &&
+                  (current_fun_return_type.compare(TYPE_INT) || ($2->type.compare(TYPE_BYTE)))){
+                     output::errorMismatch(yylineno);
+                     delete $2;
+                     exit(0);
+                  }
+                  delete $2;
+               }
+               | BREAK SC        {
+                  if(!check_while_scope()){
+                     output::errorUnexpectedBreak(yylineno);
+                     exit(0);
+                  }
+               }
+               | CONTINUE SC        {
+                  if(!check_while_scope()){
+                     output::errorUnexpectedContinue(yylineno);
+                     exit(0);
+                  }
+               }
+;
+Marker2:       /*epsilon*/        {
+      // this marker pushes a scope of type regular
+      push_tables();
+      push_offsets(top_offsets());
+      // the reason we use push top scope, is if we are in a while scope, and we open a new scope
+      // we can still use break
+      // TODO: check this
+      // IMPORTANT!!! this mechanizem makes sure that the while break will work at all !
+      // because the while opens a new scope and inside it, the statment opens another scope
+      // and because the while pushes a while_scope to the scope stack
+      // this marker keeps the break leagal inside the while
+      push_top_scope();
+}
+Marker3:       /*epsilon*/        {
+      output::endScope();
+      print_map_by_order(tables->back(),insertion_orders->back());
+      pop_tables();
+      pop_offsets();
+      pop_scope();
+}
+Marker4:       /*epsilon*/        {
+      //this marker pushed a scope of type while
+      push_tables();
+      push_offsets(top_offsets());
+      push_while_scope();
+}
+;
+Call:          ID LPAREN ExpList RPAREN         {
+                     // Check if the function name exists
+                     if(!name_exists_in_table(*$1, *tables, true)) {                     
+                        output::errorUndefFunc(yylineno, *$1);
+                        delete $1;
+                        delete $3;
+                        exit(0);
+                     }
+
+                     // Check if given args matching the function args
+                     string fun_sign = get_id_type(*$1 ,*tables);
+                     string ret_type = fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1);
+                     vector<string> function_args = split_str(fun_sign.substr(0,fun_sign.find("->")),",");
+                     vector<string> given_args = split_str($3->type,",");
+
+                     if(function_args.size() != given_args.size()){
+                        output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                        delete $1;
+                        delete $3;
+                        exit(0);
+                     }
+                     for(int i=0; i< function_args.size() || i< given_args.size(); i++){
+                        if(function_args[i].compare(given_args[i]) &&
+                           (function_args[i].compare(TYPE_INT) || given_args[i].compare(TYPE_BYTE))) {
+                              output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                              delete $1;
+                              delete $3;
+                              exit(0);
+                           }
+                     }
+
+                     /* Rule #5 hw's PDF */
+                     $$ = new string(ret_type);
+                     // HW5:
+                     // HW5~
+                     delete $1;
+                     delete $3;
+                  }
+               | ID LPAREN RPAREN         {
+                  // Check if the function name exists
+                  if(!name_exists_in_table(*$1, *tables, true)) {
+                     output::errorUndefFunc(yylineno, *$1);
+                     delete $1;
+                     exit(0);
+                  }
+                  string fun_sign = get_id_type(*$1 ,*tables);
+                  vector<string> function_args = split_str(fun_sign.substr(0,fun_sign.find("->")),",");
+                  if(!function_args.empty()){
+                     output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                     delete $1;
+                     exit(0);
+                  }
+
+                  /* Rule #5 hw's PDF */
+                  $$ = new string(fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1));
+                  delete $1;
+               }
+;
+ExpList:       Exp         {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = $1->type;
+                  // HW5:
+                  // HW5~
+                  delete $1;
+}
+               | Exp COMMA ExpList        {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = ($1->type).append(",").append($3->type);
+                  // HW5:
+                  // HW5~
+                  delete $1;
+                  delete $3;
+               }
+;
+Type:          INT            {
+                  $$ = new string(TYPE_INT);
+               }
+               | BYTE         {
+                  $$ = new string(TYPE_BYTE);
+               }
+               | BOOL         {
+                  $$ = new string(TYPE_BOOL);
+               }
+;
+Exp:           LPAREN Exp RPAREN       {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = $2->type;
+                  $$->number = $2->number;
+                  // HW5:
+                  // HW5~
+                  delete $2;
+               }
+               | Exp ADD_BINOP Exp        {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = binop(a_type, b_type);
+<<<<<<< HEAD
+                  if(!$$->type.compare(TYPE_INT)){
+                     utils_hw5::binop_int($$->register_number ,$1->register_number, *$2, $3->register_number);
+                  }
+                  if(!$$->type.compare(TYPE_BYTE)){
+                     utils_hw5::binop_byte($$->register_number ,$1->register_number, *$2, $3->register_number);
+                  }
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  delete $1;
+                  delete $2;
+                  delete $3;
+               }
+               | Exp MUL_BINOP Exp         {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = binop(a_type, b_type);
+                  // HW5:
+                  // HW5~
+                  delete $1;
+                  delete $2;
+                  delete $3;
+               }
+               | ID        {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = get_id_type(*$1, *tables);
+<<<<<<< HEAD
+                  utils_hw5::load_id_to_reg(*$1, $$->register_number);
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  delete $1;
+               }
+               | Call         {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = *$1;
+                  // HW5:
+                  // HW5~
+                  delete $1;
+               }
+               | NUM       {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = TYPE_INT;
+                  $$->number = $1;
+                  //HW5:
+<<<<<<< HEAD
+                  utils_hw5::assign_number_to_register($$->register_number,$1);
+=======
+                  $$->register_number = utils_hw5::fresh_var();
+                  CodeBuffer::instance().emit(utils_hw5::assign_number_to_register($$->register_number,$1));
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  //HW5~
+               }
+               | NUM B       {
+                  if($1 > 255){
+                     output::errorByteTooLarge(yylineno,to_string($1));
+                  }
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->type = TYPE_BYTE;
+                  $$->number = $1;  
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,$1);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+               }
+               | STRING       {
+                  // String is an internal type
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->str=*$1;  
+                  $$->type= TYPE_STRING;
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::add_string_constant(*$1,$$->register_number);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  delete $1;
+               }
+               | TRUE         {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->bool_value=true;
+                  $$->type = TYPE_BOOL;
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,1);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+               }
+               | FALSE        {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  $$->bool_value=false;
+                  $$->type = TYPE_BOOL;
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,0);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+               }
+               | NOT Exp         {
+                  //TODO: Nadav
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  check_bool_exp($2->type);
+                  $$->type = $2->type;
+                  // HW5:
+                  // HW5~
+                  delete $2;
+               }
+               | Exp AND Exp        {
+                  //TODO: Nadav
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = log_eq(a_type, b_type);
+                  // HW5:
+                  // HW5~
+                  delete $1;
+                  delete $3;
+               }
+               | Exp OR Exp        {
+                  //TODO: Nadav
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = log_eq(a_type, b_type);
+                  // HW5:
+                  // HW5~
+                  delete $1;
+                  delete $3;
+               }
+               | Exp EQUALITY_RELOP Exp        {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = relop(a_type, b_type);
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  delete $1;
+                  delete $2;
+                  delete $3;
+               }
+               | Exp RELATIONAL_RELOP Exp         {
+                  $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $3->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($3->id_name, *tables);
+                  }
+                  $$->type = relop(a_type, b_type);
+<<<<<<< HEAD
+                  //HW5:
+                  utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
+                  //HW5~
+=======
+                  // HW5:
+                  // HW5~
+>>>>>>> f0cade17169ab47b794efb400a040402d46450de
+                  delete $1;
+                  delete $2;
+                  delete $3;
+               }
+
+;
+%%
+
+bool name_exists_in_table(const string name,const vector<map<string, pair<string, int>>> &tables, bool is_fun){
+   /*
+   * this function will get a pointer to a string representing a name and a stack of tables
+   * the function will return true if the name is already in the tables and false otherwise
+   */
+   // stack<map<string, pair<string, int>>> *tabels_clone = new stack<map<string, pair<string, int>>>(tables);
+   for(auto map_iterator = tables.end()-1 ; map_iterator >=tables.begin() ; map_iterator-- ){
+      auto id_iterator= map_iterator->find(name);
+      if (id_iterator != map_iterator->end()) {
+            // if reached here, that means the key already is in some table
+            if(is_fun){
+               string id_type = id_iterator->second.first;
+               if(id_type.find("->") == string::npos){
+                  return false;
+               }
+            }
+            // if reached here, that means the key already is in some table
+            return true;
+      }
+   }
+   return false;
+} 
+
+/* Rule #8 hw's PDF */
+string relop(string a, string b){
+   if ((!a.compare(TYPE_INT) || !a.compare(TYPE_BYTE)) && (!b.compare(TYPE_INT) || !b.compare(TYPE_BYTE))) {
+      // Both must be numbers
+      return TYPE_BOOL;
+   }
+   output::errorMismatch(yylineno);
+   exit(0);
+}
+
+
+/* Rule #9 hw's PDF */
+string log_eq(string a, string b){
+   if (!a.compare(TYPE_BOOL) && !b.compare(TYPE_BOOL)) {
+      // Both must be boolean
+      return TYPE_BOOL;
+   }
+   output::errorMismatch(yylineno);
+   exit(0);
+}
+
+/* Rule #10 hw's PDF */
+string binop(string a, string b){
+   if(!a.compare(b)){
+      /* Both expressions have the same type */
+      return a;
+   }
+   if((!a.compare(TYPE_INT) && !b.compare(TYPE_BYTE))
+   || (!a.compare(TYPE_BYTE) && !b.compare(TYPE_INT))){
+      return TYPE_INT;
+   }
+   output::errorMismatch(yylineno);
+   exit(0);
+}
+
+/* Rule #16 hw's PDF */
+void check_bool_exp(string exp_type){
+   if(exp_type == ""){
+      return;
+   }
+   if(exp_type.compare(TYPE_BOOL)){
+      output::errorMismatch(yylineno);
+      exit(0);
+   }
+}
+
+
+void pop_tables(){
+   tables->pop_back();
+   insertion_orders->pop_back();
+}
+void pop_offsets(){
+   offsets->pop();
+}
+void push_tables(){
+   tables->push_back(map<string,pair<string, int>>());
+   insertion_orders->push_back(queue<string>());
+   
+}
+void push_offsets(int offset){
+   offsets->push(offset);
+}
+map<string,pair<string, int>> &top_tables(){
+   return tables->back();
+}
+
+int &top_offsets(){
+   return offsets->top();
+}
+
+void insert(const string& name, const string& type,int offset, bool is_fun){
+   if(name_exists_in_table(name,*tables)){
+      output::errorDef(yylineno,name);
+      exit(0);
+   }
+   (tables->back()).insert({
+         name,
+         pair<string ,int>(type,offset)
+   });
+   insertion_orders->back().push(name);
+}
+
+void yyerror(const char*){
+   output::errorSyn(yylineno); 
+}
+
+void push_regular_scope(){
+   scope_type->push(REGULAR_SCOPE);
+}
+void pop_scope(){
+   scope_type->pop();
+}
+void push_while_scope(){
+   scope_type->push(WHILE_SCOPE);
+}
+
+void push_top_scope(){
+   scope_type->push(scope_type->top());
+}
+
+bool check_while_scope(){
+   // current_scope_type.comapre(REGULAR_SCOPE) will be 0 (false) if we are in a regular scope
+   // meaning not in a while scope, and so breack is ileagal
+   if(scope_type->top().compare(WHILE_SCOPE)){
+   return false;
+   }
+   return true;
+}
+
+
+void assign_type_check(string var,string exp) {
+   // the string compare function will return 0 (false) only if the string are the same
+   if(var.compare(exp)){
+      if(var.compare(TYPE_INT) || exp.compare(TYPE_BYTE))  {
+         output::errorMismatch(yylineno);
+         exit(0);
+      }
+   }
+   return;
+}
+
+
+
+string get_current_function_return_type(const vector<queue<string>> stack_queues){
+   string function_name = stack_queues.front().back();
+   string function_sign = get_id_type(function_name , *tables);
+   return function_sign.substr(function_sign.find("->")+2, function_sign.size()-1);
+}
+
+string vectorToString(const std::vector<string>& argTypes) {
+   string res;
+   res = "(";
+   for(int i = 0; i < argTypes.size(); ++i) {
+      res.append(argTypes[i]);
+      if (i + 1 < argTypes.size())
+         res.append(",");
+   }
+   res.append(")");
+   return res;
+}
+
+   string get_id_type(const string name, const vector<map<string, pair<string, int>>> &tables){
+   // stack<map<string, pair<string, int>>> *tabels_clone = new stack<map<string, pair<string, int>>>(tables);
+   for(auto map_iterator = tables.end()-1 ; map_iterator >= tables.begin() ; map_iterator-- ){
+      auto id_iterator= map_iterator->find(name);
+      if (id_iterator != map_iterator->end()) {
+            // if reached here, that means the key already is in some table
+            string id_type = id_iterator->second.first;
+            return id_type;
+      }
+   }
+   output::errorUndef(yylineno, name);
+   exit(0);
+}
+vector<string> split_str(string str, string delimiter){
+   if(str[0] == '('){
+      str.erase(0,1);
+   }
+   if(str[str.length()-1] == ')'){
+      str.erase(str.length()-1,1);
+   }
+   vector<string> tokens;
+   size_t position = 0;
+   while ((position = str.find(delimiter)) != string::npos) {
+      tokens.push_back(str.substr(0, position));
+      str.erase(0,position + delimiter.length());
+   }
+   if(tokens.size()!=0 || !str.empty()){
+      tokens.push_back(str);
+   }
+   return tokens;
+}
+void print_map_by_order(map<string, pair<string, int>> scope_map,queue<string> orders){
+   queue<string>* clone = new queue<string> (orders);
+   string name;
+   while (clone->size()!= 0){
+      name = clone->front();
+      clone->pop();
+      auto element = scope_map[name];
+      output::printID(name, element.second, element.first);
+   }
+   delete clone;
+}
+
+int main(){
+   tables = new vector<map<string,pair<string, int>>>();
+   offsets = new stack<int>();
+   insertion_orders = new vector<queue<string>> ();
+   scope_type = new stack<string>();
+   auto return_parse = yyparse();
+   delete tables;
+   delete offsets;
+   delete insertion_orders;
+   delete scope_type;
+   CodeBuffer::instance().printCodeBuffer();
+   return return_parse;
+}
