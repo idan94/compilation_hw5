@@ -17,13 +17,12 @@ namespace utils_hw5
     {
         return "%var" + to_string(reg_number);
     }
-    void assign_number_to_register(int reg_number, int number_to_assign)
+    string assign_number_to_register(int reg_number, int number_to_assign)
     {
         stringstream to_emit;
         to_emit << make_var(reg_number) << "="
                 << "add i32 0, " << number_to_assign;
-        // CodeBuffer::instance().emit(to_emit);
-        // %var5 = add i32 0,
+        return to_emit.str();
     }
     void register_assign(int reg_number, int reg_number_a, const string& op, int reg_number_b)
     {

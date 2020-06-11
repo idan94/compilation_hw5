@@ -12,6 +12,7 @@
    #include <functional>
    #include <queue>
    #include "utils.hpp"
+   #include "bp.hpp"
    
    using namespace std;
 
@@ -28,6 +29,12 @@
    vector<queue<string>>* insertion_orders;
    stack<int>* offsets;
    map<string,pair<string, int>>* t;
+
+   //HW5:
+   // the current code section that is being generated
+   CodeBuffer* current_buffer;
+   //HW5~
+
    int yylex();
    void yyerror(const char*);
    
@@ -59,6 +66,8 @@
    string vectorToString(const std::vector<string>& argTypes);
    vector<string> split_str(string str, string delimiter);
    void print_map_by_order(map<string, pair<string, int>> scope_map,queue<string> orders);
+
+   
 %}
 
 %union{
@@ -131,6 +140,9 @@ Program:       Marker1 Funcs       {
    print_map_by_order(tables->back(),insertion_orders->back());
    pop_tables();
    pop_offsets();
+   // HW5:
+   // jump to the function main
+   // HW5~
 }
 ;
 Marker1:       /*epsilon*/       {
@@ -147,7 +159,11 @@ Marker1:       /*epsilon*/       {
 Funcs:         /*epsilon*/       {}
                | FuncDecl Funcs        {}
 ;
-FuncDecl:      FuncDeclPart1 FuncDeclPart2 {}
+FuncDecl:      FuncDeclPart1 FuncDeclPart2 {
+                   // HW5:
+                   // emit the code for the decleration of the function
+                  // HW5~
+                  }
 ;
 FuncDeclPart1:  RetType ID LPAREN Formals RPAREN{      
       auto function_args = split_str($4->type, ",");
@@ -215,7 +231,7 @@ FormalsDecl:   Type ID        {
                   delete $2;
 }
 ;
-Statements:    Statement         {}
+Statements:    Statement        {}
                | Statements Statement        {}
 ;
 Statement:     
@@ -371,6 +387,8 @@ Call:          ID LPAREN ExpList RPAREN         {
 
                      /* Rule #5 hw's PDF */
                      $$ = new string(ret_type);
+                     // HW5:
+                     // HW5~
                      delete $1;
                      delete $3;
                   }
@@ -397,11 +415,15 @@ Call:          ID LPAREN ExpList RPAREN         {
 ExpList:       Exp         {
                   $$ = new Expression();
                   $$->type = $1->type;
+                  // HW5:
+                  // HW5~
                   delete $1;
 }
                | Exp COMMA ExpList        {
                   $$ = new Expression();
                   $$->type = ($1->type).append(",").append($3->type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $3;
                }
@@ -420,6 +442,8 @@ Exp:           LPAREN Exp RPAREN       {
                   $$ = new Expression();
                   $$->type = $2->type;
                   $$->number = $2->number;
+                  // HW5:
+                  // HW5~
                   delete $2;
                }
                | Exp ADD_BINOP Exp        {
@@ -433,6 +457,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = binop(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $2;
                   delete $3;
@@ -448,6 +474,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = binop(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $2;
                   delete $3;
@@ -455,11 +483,15 @@ Exp:           LPAREN Exp RPAREN       {
                | ID        {
                   $$ = new Expression();
                   $$->type = get_id_type(*$1, *tables);
+                  // HW5:
+                  // HW5~
                   delete $1;
                }
                | Call         {
                   $$ = new Expression();
                   $$->type = *$1;
+                  // HW5:
+                  // HW5~
                   delete $1;
                }
                | NUM       {
@@ -468,35 +500,45 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->number = $1;
                   //HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  
+                  current_buffer->emit(utils_hw5::assign_number_to_register($$->register_number,$1));
                   //HW5~
                }
                | NUM B       {
                   $$ = new Expression();
                   $$->type = TYPE_BYTE;
                   $$->number = $1;  
+                  // HW5:
+                  // HW5~
                }
                | STRING       {
                   // String is an internal type
                   $$ = new Expression();
                   $$->str=*$1;  
                   $$->type= TYPE_STRING;
+                  // HW5:
+                  // HW5~
                   delete $1;
                }
                | TRUE         {
                   $$ = new Expression();
                   $$->bool_value=true;
                   $$->type = TYPE_BOOL;
+                  // HW5:
+                  // HW5~
                }
                | FALSE        {
                   $$ = new Expression();
                   $$->bool_value=false;
                   $$->type = TYPE_BOOL;
+                  // HW5:
+                  // HW5~
                }
                | NOT Exp         {
                   $$ = new Expression();
                   check_bool_exp($2->type);
                   $$->type = $2->type;
+                  // HW5:
+                  // HW5~
                   delete $2;
                }
                | Exp AND Exp        {
@@ -510,6 +552,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = log_eq(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $3;
                }
@@ -524,6 +568,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = log_eq(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $3;
                }
@@ -538,6 +584,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $2;
                   delete $3;
@@ -553,6 +601,8 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
+                  // HW5:
+                  // HW5~
                   delete $1;
                   delete $2;
                   delete $3;
@@ -778,5 +828,7 @@ int main(){
    delete offsets;
    delete insertion_orders;
    delete scope_type;
+   current_buffer = &(CodeBuffer::instance());
+   current_buffer->printCodeBuffer();
    return return_parse;
 }
