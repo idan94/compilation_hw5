@@ -1,0 +1,30 @@
+void explainWhileElse(int x) {
+	int cnt = 0;
+	while(cnt < x){ 
+		printi(cnt);
+		cnt = cnt + 1;
+		if(cnt == 5) {
+			break;
+		}
+	}
+	else {
+		print("shouldn't be printed");
+	}
+	
+	while(cnt < x){ 
+		printi(cnt);
+		cnt = cnt + 1;
+		if(cnt == 5) {
+			break;
+		}
+	}
+	else {
+		print("should be printed");
+	}
+}
+
+void main()
+{
+	int x = 7;
+	explainWhileElse(x);
+}
