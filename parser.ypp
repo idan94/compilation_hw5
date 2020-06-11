@@ -8,11 +8,11 @@
    #include <assert.h>
    #include <set>
    #include "structs.hpp"
+   #include "utils.hpp"
    #include <algorithm>
    #include <functional>
    #include <queue>
-   #include "utils.hpp"
-   
+
    using namespace std;
 
    extern int yylineno;
@@ -30,7 +30,7 @@
    map<string,pair<string, int>>* t;
    int yylex();
    void yyerror(const char*);
-   
+
    bool name_exists_in_table(const string name,const vector<map<string, pair<string, int>>> &tables, bool is_fun=false);
    /* Rule #8 hw's PDF */
    string relop(string a, string b);
@@ -131,17 +131,21 @@ Program:       Marker1 Funcs       {
    print_map_by_order(tables->back(),insertion_orders->back());
    pop_tables();
    pop_offsets();
+   utils_hw5::print_buffers();
 }
 ;
 Marker1:       /*epsilon*/       {
       push_tables();
       push_offsets(0);
       vector<string> args_to_print;
+      utils_hw5::start_llvm_code();
       args_to_print.push_back(TYPE_STRING);
       insert("print", output::makeFunctionType(TYPE_VOID, args_to_print),0, true);
+      utils_hw5::add_print_function();
       args_to_print.clear();
       args_to_print.push_back(TYPE_INT);
       insert("printi", output::makeFunctionType(TYPE_VOID, args_to_print),0, true);
+      utils_hw5::add_printi_function();
       push_regular_scope();
 }
 Funcs:         /*epsilon*/       {}
@@ -256,6 +260,9 @@ Statement:
                      delete $4;
                      exit(0); 
                   }
+                  //HW5:
+                  utils_hw5::assign_id(*$2, $4->register_number);
+                  //HW5~
                   delete $1;
                   delete $2;
                   delete $4;
@@ -396,11 +403,13 @@ Call:          ID LPAREN ExpList RPAREN         {
 ;
 ExpList:       Exp         {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = $1->type;
                   delete $1;
 }
                | Exp COMMA ExpList        {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = ($1->type).append(",").append($3->type);
                   delete $1;
                   delete $3;
@@ -418,12 +427,14 @@ Type:          INT            {
 ;
 Exp:           LPAREN Exp RPAREN       {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = $2->type;
                   $$->number = $2->number;
                   delete $2;
                }
                | Exp ADD_BINOP Exp        {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -433,12 +444,19 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = binop(a_type, b_type);
+                  if(!$$->type.compare(TYPE_INT)){
+                     utils_hw5::binop_int($$->register_number ,$1->register_number, *$2, $3->register_number);
+                  }
+                  if(!$$->type.compare(TYPE_BYTE)){
+                     utils_hw5::binop_byte($$->register_number ,$1->register_number, *$2, $3->register_number);
+                  }
                   delete $1;
                   delete $2;
                   delete $3;
                }
                | Exp MUL_BINOP Exp         {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -454,53 +472,79 @@ Exp:           LPAREN Exp RPAREN       {
                }
                | ID        {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = get_id_type(*$1, *tables);
+                  utils_hw5::load_id_to_reg(*$1, $$->register_number);
                   delete $1;
                }
                | Call         {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = *$1;
                   delete $1;
                }
                | NUM       {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = TYPE_INT;
                   $$->number = $1;
                   //HW5:
-                  $$->register_number = utils_hw5::fresh_var();
-                  
+                  utils_hw5::assign_number_to_register($$->register_number,$1);
                   //HW5~
                }
                | NUM B       {
+                  if($1 > 255){
+                     output::errorByteTooLarge(yylineno,to_string($1));
+                  }
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = TYPE_BYTE;
                   $$->number = $1;  
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,$1);
+                  //HW5~
                }
                | STRING       {
                   // String is an internal type
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->str=*$1;  
                   $$->type= TYPE_STRING;
+                  //HW5:
+                  utils_hw5::add_string_constant(*$1,$$->register_number);
+                  //HW5~
                   delete $1;
                }
                | TRUE         {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->bool_value=true;
                   $$->type = TYPE_BOOL;
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,1);
+                  //HW5~
                }
                | FALSE        {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   $$->bool_value=false;
                   $$->type = TYPE_BOOL;
+                  //HW5:
+                  utils_hw5::assign_number_to_register($$->register_number,0);
+                  //HW5~
                }
                | NOT Exp         {
+                  //TODO: Nadav
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   check_bool_exp($2->type);
                   $$->type = $2->type;
                   delete $2;
                }
                | Exp AND Exp        {
+                  //TODO: Nadav
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -514,7 +558,9 @@ Exp:           LPAREN Exp RPAREN       {
                   delete $3;
                }
                | Exp OR Exp        {
+                  //TODO: Nadav
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -529,6 +575,7 @@ Exp:           LPAREN Exp RPAREN       {
                }
                | Exp EQUALITY_RELOP Exp        {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -538,12 +585,16 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
+                  //HW5:
+                  utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
+                  //HW5~
                   delete $1;
                   delete $2;
                   delete $3;
                }
                | Exp RELATIONAL_RELOP Exp         {
                   $$ = new Expression();
+                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -553,6 +604,9 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
+                  //HW5:
+                  utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
+                  //HW5~
                   delete $1;
                   delete $2;
                   delete $3;

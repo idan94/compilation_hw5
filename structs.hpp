@@ -1,9 +1,12 @@
 #ifndef __STRUCTS_HW3__
 #define __STRUCTS_HW3__
+
+
 #include <string>
 
-
 using namespace std;
+
+
 
 struct Formal{
    string id_name;

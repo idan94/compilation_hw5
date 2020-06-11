@@ -2,9 +2,9 @@
 // Definition section   
     #include <iostream>
     #include "hw3_output.hpp"
-    #include "structs.hpp"
+    #include "structs.hpp"    
     #include "parser.tab.hpp"
-    // #include "utils.hpp"
+
 
 %}
 
