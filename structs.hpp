@@ -18,7 +18,8 @@ struct Expression{
    int number;
    string str;
    string op;
-   Expression() : id_name{""}, type{""}, bool_value{false}, number{0}, str{""}, op{""} {}
+   int register_number;
+   Expression() : id_name{""}, type{""}, bool_value{false}, number{0}, str{""}, op{""}, register_number{-1} {}
 };
 
 typedef struct Formal Formal;

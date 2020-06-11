@@ -6,12 +6,13 @@
    #include <string>
    #include <vector>
    #include <assert.h>
-   // #include "utils.hpp"
    #include <set>
    #include "structs.hpp"
    #include <algorithm>
    #include <functional>
    #include <queue>
+   #include "utils.hpp"
+   
    using namespace std;
 
    extern int yylineno;
@@ -29,7 +30,6 @@
    map<string,pair<string, int>>* t;
    int yylex();
    void yyerror(const char*);
-
    
    bool name_exists_in_table(const string name,const vector<map<string, pair<string, int>>> &tables, bool is_fun=false);
    /* Rule #8 hw's PDF */
@@ -249,7 +249,6 @@ Statement:
                   insert(*$2,*$1, top_offsets(), false);
                   top_offsets() += 1;
                   // we need to check if the number is not larger then 255
-                  //TODO: check what to do with negative numbers ? 
                   if(!TYPE_BYTE.compare(*$1) && $4->number > 255){
                      output::errorByteTooLarge(yylineno,to_string($4->number));
                      delete $1;
@@ -467,6 +466,10 @@ Exp:           LPAREN Exp RPAREN       {
                   $$ = new Expression();
                   $$->type = TYPE_INT;
                   $$->number = $1;
+                  //HW5:
+                  $$->register_number = utils::fresh_var();
+                  
+                  //HW5~
                }
                | NUM B       {
                   $$ = new Expression();
