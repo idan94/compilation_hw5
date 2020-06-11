@@ -30,11 +30,6 @@
    stack<int>* offsets;
    map<string,pair<string, int>>* t;
 
-   //HW5:
-   // the current code section that is being generated
-   CodeBuffer* current_buffer;
-   //HW5~
-
    int yylex();
    void yyerror(const char*);
    
@@ -500,7 +495,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->number = $1;
                   //HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  current_buffer->emit(utils_hw5::assign_number_to_register($$->register_number,$1));
+                  CodeBuffer::instance().emit(utils_hw5::assign_number_to_register($$->register_number,$1));
                   //HW5~
                }
                | NUM B       {
@@ -828,7 +823,6 @@ int main(){
    delete offsets;
    delete insertion_orders;
    delete scope_type;
-   current_buffer = &(CodeBuffer::instance());
-   current_buffer->printCodeBuffer();
+   CodeBuffer::instance().printCodeBuffer();
    return return_parse;
 }
