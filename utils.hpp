@@ -27,7 +27,6 @@ namespace utils_hw5
     {
         return "%var" + to_string(reg_number);
     }
-<<<<<<< HEAD
 
     string make_id_var(const string &id_number)
     {
@@ -40,19 +39,12 @@ namespace utils_hw5
     }
 
     void assign_number_to_register(int left_reg_number, int number_to_assign)
-=======
-    string assign_number_to_register(int reg_number, int number_to_assign)
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
     {
         stringstream to_emit;
         to_emit << make_var(left_reg_number) << " = "
                 << "add i32 0, " << number_to_assign;
-<<<<<<< HEAD
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
-=======
-        return to_emit.str();
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
     }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
@@ -74,7 +66,11 @@ namespace utils_hw5
         {
             op_command = "sub";
         }
-        to_emit << make_var(left_reg_number) << " = " << op_command << " " << reg_number_a << ", " << reg_number_b;
+        if (!op.compare("*"))
+        {
+            op_command = "mul";
+        }
+        to_emit << make_var(left_reg_number) << " = " << op_command << " i32 " << reg_number_a << ", " << reg_number_b;
         EMIT(to_emit.str());
     }
 
@@ -85,6 +81,38 @@ namespace utils_hw5
         stringstream to_emit;
         to_emit << make_var(left_reg_number) << " = and i32 255, " << make_var(temp_register);
         EMIT(to_emit.str());
+    }
+    void binop_div(int left_reg_number, int numerator_reg, int denominator_reg)
+    {
+        stringstream to_emit;
+        // Check if the denominator equals zero(error):
+        int cond_temp_register = fresh_var();
+        to_emit << make_var(cond_temp_register) << " = icmp eq i32 0, " << make_var(denominator_reg);
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        to_emit << "br i1 " + make_var(cond_temp_register) + ", label @, label @";
+        int branch_pointer = EMIT(to_emit.str());
+        to_emit.str("");
+
+        to_emit << "@.div_zero_error = constant [23 x i8] c\"Error division by zero\\00\"";
+        EMIT_GLOBAL(to_emit.str());
+        to_emit.str("");
+
+        // Denominator equals zero, so perform division:
+        string div_by_zero_label = GEN_LABEL();
+        EMIT("call void @print(i8* getelementptr ([23 x i8], [23 x i8]* @.div_zero_error, i32 0, i32 0))");
+        EMIT("call void @exit(i32 1)");
+        int close_block_pointer = EMIT("br label @");
+
+        // Denominator is not zero, so perform division:
+        string divide_label = GEN_LABEL();
+        to_emit << make_var(left_reg_number) << " = sdiv i32 " << make_var(numerator_reg) << ", " << make_var(denominator_reg);
+        EMIT(to_emit.str());
+        BPATCH(CodeBuffer::makelist({branch_pointer, FIRST}), div_by_zero_label);
+        BPATCH(CodeBuffer::makelist({branch_pointer, SECOND}), divide_label);
+        // Last backpatching is just for closing the basic block:
+        BPATCH(CodeBuffer::makelist({close_block_pointer, FIRST}), divide_label);
     }
 
     void relop(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)

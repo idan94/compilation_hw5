@@ -12,13 +12,9 @@
    #include <algorithm>
    #include <functional>
    #include <queue>
-<<<<<<< HEAD
-
-=======
    #include "utils.hpp"
    #include "bp.hpp"
    
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
    using namespace std;
 
    extern int yylineno;
@@ -140,13 +136,7 @@ Program:       Marker1 Funcs       {
    print_map_by_order(tables->back(),insertion_orders->back());
    pop_tables();
    pop_offsets();
-<<<<<<< HEAD
    utils_hw5::print_buffers();
-=======
-   // HW5:
-   // jump to the function main
-   // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
 }
 ;
 Marker1:       /*epsilon*/       {
@@ -470,18 +460,15 @@ Exp:           LPAREN Exp RPAREN       {
                   if(b_type.empty()){
                      b_type = get_id_type($3->id_name, *tables);
                   }
+                  // HW5:
                   $$->type = binop(a_type, b_type);
-<<<<<<< HEAD
                   if(!$$->type.compare(TYPE_INT)){
                      utils_hw5::binop_int($$->register_number ,$1->register_number, *$2, $3->register_number);
                   }
                   if(!$$->type.compare(TYPE_BYTE)){
                      utils_hw5::binop_byte($$->register_number ,$1->register_number, *$2, $3->register_number);
                   }
-=======
-                  // HW5:
                   // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   delete $1;
                   delete $2;
                   delete $3;
@@ -499,6 +486,16 @@ Exp:           LPAREN Exp RPAREN       {
                   }
                   $$->type = binop(a_type, b_type);
                   // HW5:
+                  if(!$2->compare("*")){  // mul op
+                     if(!$$->type.compare(TYPE_INT)){
+                        utils_hw5::binop_int($$->register_number ,$1->register_number, *$2, $3->register_number);
+                     }
+                     if(!$$->type.compare(TYPE_BYTE)){
+                        utils_hw5::binop_byte($$->register_number ,$1->register_number, *$2, $3->register_number);
+                     }
+                  }else{ // div op
+                     utils_hw5::binop_div($$->register_number ,$1->register_number, $3->register_number);
+                  }
                   // HW5~
                   delete $1;
                   delete $2;
@@ -508,12 +505,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$ = new Expression();
                   $$->register_number = utils_hw5::fresh_var();
                   $$->type = get_id_type(*$1, *tables);
-<<<<<<< HEAD
                   utils_hw5::load_id_to_reg(*$1, $$->register_number);
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   delete $1;
                }
                | Call         {
@@ -530,12 +522,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->type = TYPE_INT;
                   $$->number = $1;
                   //HW5:
-<<<<<<< HEAD
                   utils_hw5::assign_number_to_register($$->register_number,$1);
-=======
-                  $$->register_number = utils_hw5::fresh_var();
-                  CodeBuffer::instance().emit(utils_hw5::assign_number_to_register($$->register_number,$1));
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   //HW5~
                }
                | NUM B       {
@@ -546,14 +533,9 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->register_number = utils_hw5::fresh_var();
                   $$->type = TYPE_BYTE;
                   $$->number = $1;  
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::assign_number_to_register($$->register_number,$1);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                }
                | STRING       {
                   // String is an internal type
@@ -561,14 +543,9 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->register_number = utils_hw5::fresh_var();
                   $$->str=*$1;  
                   $$->type= TYPE_STRING;
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::add_string_constant(*$1,$$->register_number);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   delete $1;
                }
                | TRUE         {
@@ -576,28 +553,18 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->register_number = utils_hw5::fresh_var();
                   $$->bool_value=true;
                   $$->type = TYPE_BOOL;
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::assign_number_to_register($$->register_number,1);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                }
                | FALSE        {
                   $$ = new Expression();
                   $$->register_number = utils_hw5::fresh_var();
                   $$->bool_value=false;
                   $$->type = TYPE_BOOL;
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::assign_number_to_register($$->register_number,0);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                }
                | NOT Exp         {
                   //TODO: Nadav
@@ -657,14 +624,9 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   delete $1;
                   delete $2;
                   delete $3;
@@ -681,14 +643,9 @@ Exp:           LPAREN Exp RPAREN       {
                      b_type = get_id_type($3->id_name, *tables);
                   }
                   $$->type = relop(a_type, b_type);
-<<<<<<< HEAD
                   //HW5:
                   utils_hw5::relop($$->register_number,$1->register_number, *$2,$3->register_number);
                   //HW5~
-=======
-                  // HW5:
-                  // HW5~
->>>>>>> f0cade17169ab47b794efb400a040402d46450de
                   delete $1;
                   delete $2;
                   delete $3;
@@ -914,6 +871,5 @@ int main(){
    delete offsets;
    delete insertion_orders;
    delete scope_type;
-   CodeBuffer::instance().printCodeBuffer();
    return return_parse;
 }
