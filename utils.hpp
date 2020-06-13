@@ -49,8 +49,8 @@ namespace utils_hw5
         // %var5 = add i32 0, number_to_assign
     }
     void append_statements(Statment& first,Statment& second){
-        BPATCH(first->exit, second->starting_line_lable);
-        first->exit = second->exit;
+        BPATCH(first.exit, second.starting_line_lable);
+        first.exit = second.exit;
     }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)

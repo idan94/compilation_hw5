@@ -119,7 +119,7 @@
 %type <expression> ExpList
 %type <type> Type
 %type <statment> Statement
-%type <statment> Statemens
+%type <statment> Statements
 %%
 
 Program:       Marker1 Funcs       {
@@ -236,7 +236,7 @@ Statements:    Statement        {
                 }
                | Statements Statement        {
                   $$ = $1;
-                  utils_hw5::append_statements(Statements,Statement)
+                  utils_hw5::append_statements(*$$,*$2);
                   delete $2;
                }
 ;

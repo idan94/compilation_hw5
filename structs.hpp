@@ -31,11 +31,10 @@ struct Expression{
 };
 
 struct Statment{
-   int starting_line;
+   string starting_line_lable;
    vector<pair<int,BranchLabelIndex>> exit;
-   Statment() : starting_line{-1}, exit{vector<pair<int,BranchLabelIndex>>{pair<int,BranchLabelIndex>(-1,FIRST)}} {}
-    
-}
+   Statment() : starting_line_lable{-1}, exit{vector<pair<int,BranchLabelIndex>>{pair<int,BranchLabelIndex>(-1,FIRST)}} {}
+};
 
 typedef struct Formal Formal;
 typedef struct Expression Expression;
