@@ -75,7 +75,7 @@
    string* str;
    string* return_type;
    Expression* expression;
-   Statment* statment;
+   Statement* statment;
    Formal* formal;
 }
 

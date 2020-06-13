@@ -48,7 +48,7 @@ namespace utils_hw5
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
     }
-    void append_statements(Statment& first,Statment& second){
+    void append_statements(Statement& first,Statement& second){
         BPATCH(first.exit, second.starting_line_lable);
         first.exit = second.exit;
     }
@@ -224,7 +224,7 @@ namespace utils_hw5
         to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
         EMIT(to_emit.str());
     }
-    vector<pair<int,BranchLabelIndex>> handle_if_statsment(int exp_reg,Statment* if_statment,Statment* else_statment = nullptr){
+    vector<pair<int,BranchLabelIndex>> handle_if_statsment(int exp_reg,Statement* if_statment,Statement* else_statment = nullptr){
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
