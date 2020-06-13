@@ -5,11 +5,13 @@
 #include <sstream>
 #include <iostream>
 #include "bp.hpp"
+#include "structs.hpp"
 
 #define EMIT(to_emit) CodeBuffer::instance().emit(to_emit)
 #define EMIT_GLOBAL(to_emit) CodeBuffer::instance().emitGlobal(to_emit)
 #define GEN_LABEL() CodeBuffer::instance().genLabel()
 #define BPATCH(address_list, label) CodeBuffer::instance().bpatch(address_list, label)
+#define MERGE(list_1,list_2) CodeBuffer::merge(list_1,list_2)
 
 using namespace std;
 
@@ -45,6 +47,10 @@ namespace utils_hw5
                 << "add i32 0, " << number_to_assign;
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
+    }
+    void append_statements(Statment& first,Statment& second){
+        BPATCH(first->exit, second->starting_line_lable);
+        first->exit = second->exit;
     }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)

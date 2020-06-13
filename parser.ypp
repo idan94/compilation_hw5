@@ -75,6 +75,7 @@
    string* str;
    string* return_type;
    Expression* expression;
+   Statment* statment;
    Formal* formal;
 }
 
@@ -117,6 +118,8 @@
 %type <return_type> Call
 %type <expression> ExpList
 %type <type> Type
+%type <statment> Statement
+%type <statment> Statemens
 %%
 
 Program:       Marker1 Funcs       {
@@ -228,13 +231,20 @@ FormalsDecl:   Type ID        {
                   delete $2;
 }
 ;
-Statements:    Statement        {}
-               | Statements Statement        {}
+Statements:    Statement        {
+                  $$ = $1;
+                }
+               | Statements Statement        {
+                  $$ = $1;
+                  utils_hw5::append_statements(Statements,Statement)
+                  delete $2;
+               }
 ;
 Statement:     
                /* Moved here If and While roles. solving 'Dangling Else' */
                IF LPAREN Exp RPAREN Marker2 Statement Marker3     {
                   check_bool_exp($3->type);
+                  
                   delete $3;
                }
                | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
@@ -250,7 +260,10 @@ Statement:
                   delete $3;
                }
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
-               | LBRACE Marker2 Statements Marker3 RBRACE  {}
+               | LBRACE Marker2 Statements Marker3 RBRACE  {
+                  //HW5:
+                  //HW5~
+               }
                | Type ID SC         {
                   insert(*$2,*$1, top_offsets(), false);
                   top_offsets() += 1;
