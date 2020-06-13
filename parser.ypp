@@ -270,6 +270,7 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
+                  TODO: wrong ! this does not assign to var ! but to a veriable in the veriable tabel !
                   utils_hw5::assign_id(*$2, $4->register_number);
                   //HW5~
                   delete $1;
@@ -442,7 +443,9 @@ Type:          INT            {
 ;
 Exp:           LPAREN Exp RPAREN       {
                   $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
+                  // $$->register_number = utils_hw5::fresh_var();
+                  // no need for new register, the expression is already calculated
+                  $$->register_number = $2->register_number;
                   $$->type = $2->type;
                   $$->number = $2->number;
                   // HW5:
@@ -569,17 +572,17 @@ Exp:           LPAREN Exp RPAREN       {
                | NOT Exp         {
                   //TODO: Nadav
                   $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
                   check_bool_exp($2->type);
                   $$->type = $2->type;
                   // HW5:
+                  $$->register_number = utils_hw5::fresh_var();
+                   utils_hw5::flip_bool_value($$->register_number,$1->register_number)
                   // HW5~
                   delete $2;
                }
                | Exp AND Exp        {
                   //TODO: Nadav
-                  $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
+                  $$ = new Expression(); 
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -590,6 +593,8 @@ Exp:           LPAREN Exp RPAREN       {
                   }
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
+                  $$->register_number = utils_hw5::fresh_var();
+                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"AND")
                   // HW5~
                   delete $1;
                   delete $3;
@@ -597,7 +602,6 @@ Exp:           LPAREN Exp RPAREN       {
                | Exp OR Exp        {
                   //TODO: Nadav
                   $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
@@ -608,6 +612,8 @@ Exp:           LPAREN Exp RPAREN       {
                   }
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
+                  $$->register_number = utils_hw5::fresh_var();
+                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"OR")
                   // HW5~
                   delete $1;
                   delete $3;

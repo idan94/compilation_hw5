@@ -70,7 +70,7 @@ namespace utils_hw5
         {
             op_command = "mul";
         }
-        to_emit << make_var(left_reg_number) << " = " << op_command << " i32 " << reg_number_a << ", " << reg_number_b;
+        to_emit << make_var(left_reg_number) << " = " << op_command << " i32 " << make_var(reg_number_a) << ", " << make_var(reg_number_b);
         EMIT(to_emit.str());
     }
 
@@ -99,7 +99,7 @@ namespace utils_hw5
         EMIT_GLOBAL(to_emit.str());
         to_emit.str("");
 
-        // Denominator equals zero, so perform division:
+        // Denominator equals zero, so ummmm error ? :
         string div_by_zero_label = GEN_LABEL();
         EMIT("call void @print(i8* getelementptr ([23 x i8], [23 x i8]* @.div_zero_error, i32 0, i32 0))");
         EMIT("call void @exit(i32 1)");
@@ -175,6 +175,8 @@ namespace utils_hw5
     void load_id_to_reg(const string &id_reg, int reg_number)
     {
         stringstream to_emit;
+        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the 
+        // aloca function
         to_emit << make_var(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
         EMIT(to_emit.str());
     }
@@ -198,6 +200,23 @@ namespace utils_hw5
         EMIT("    call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)");
         EMIT("    ret void");
         EMIT("}");
+    }
+    void flip_bool_value(int output_reg,int input_reg){
+        stringstream to_emit;
+        to_emit  << make_var(output_reg) << " = " << "sub i32 1," <<  make_var(input_reg);
+        EMIT(to_emit);
+    }
+    void bit_by_bit_operand(int output_reg,int input_reg_a,int input_reg_b,string op){
+        string op_code;
+        if(!op.equals("OR")){
+            op_code = " or i32"
+        }
+        else{
+            op_code = " and i32"
+        }
+        stringstream to_emit;
+        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
+        EMIT(to_emit);
     }
 } // namespace utils_hw5
 
