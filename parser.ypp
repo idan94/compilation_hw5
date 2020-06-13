@@ -245,14 +245,14 @@ Statement:
                IF LPAREN Exp RPAREN Marker2 Statement Marker3     {
                   check_bool_exp($3->type);
                   //HW5:
-                  utils_hw5::handle_if_statsment($3->register_number,*$6);
+                  utils_hw5::handle_if_statsment($3->register_number,$6);
                   //HW5~
                   delete $3;
                }
                | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
                   check_bool_exp($3->type);
                   //HW5:
-                  utils_hw5::handle_if_statsment($3->register_number,*$6,*$10);
+                  utils_hw5::handle_if_statsment($3->register_number,$6,$10);
                   //HW5~
                   delete $3;
                }
