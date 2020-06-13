@@ -224,7 +224,7 @@ namespace utils_hw5
         to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
         EMIT(to_emit.str());
     }
-    string handle_if_statsment(int exp_reg,Statment* if_statment,Statment* else_statment = nullptr){
+    vector<pair<int,BranchLabelIndex>> handle_if_statsment(int exp_reg,Statment* if_statment,Statment* else_statment = nullptr){
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
@@ -250,9 +250,12 @@ namespace utils_hw5
         else{
             BPATCH(CodeBuffer::makelist({branch_pointer, SECOND}),next_instruction_lable);
         }
-        return next_instruction_lable
-
+        // create the exit of the if statment 
+        to_emit.flush();
+        to_emit << "br lable @ ";
+        return CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
     }
+
 } // namespace utils_hw5
 
 #endif

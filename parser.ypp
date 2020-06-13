@@ -251,7 +251,6 @@ Statement:
                   //HW5~
                   delete $3;
                   delete $6;
-
                }
                | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
                   check_bool_exp($3->type);
