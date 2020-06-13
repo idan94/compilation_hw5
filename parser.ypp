@@ -245,19 +245,31 @@ Statement:
                IF LPAREN Exp RPAREN Marker2 Statement Marker3     {
                   check_bool_exp($3->type);
                   //HW5:
-                  utils_hw5::handle_if_statsment($3->register_number,$6);
+                  $$ = new Statement();
+                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
+                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6);
                   //HW5~
                   delete $3;
+                  delete $6;
+
                }
                | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
                   check_bool_exp($3->type);
                   //HW5:
-                  utils_hw5::handle_if_statsment($3->register_number,$6,$10);
+                  $$ = new Statement();
+                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
+                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6,$10);
                   //HW5~
                   delete $3;
+                  delete $6;
+                  delete $10;
                }
                | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3    {
                   check_bool_exp($3->type);
+                  //HW5:
+                     // need to use the phi function to recalculate the expresion
+                     // fuuuuuuuuuuuuuuuuuuuuuuuuuuuudge 
+                  //HW5~
                   delete $3;
                }
                | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
@@ -267,6 +279,7 @@ Statement:
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
                | LBRACE Marker2 Statements Marker3 RBRACE  {
                   //HW5:
+
                   //HW5~
                }
                | Type ID SC         {
