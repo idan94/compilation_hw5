@@ -224,6 +224,34 @@ namespace utils_hw5
         to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
         EMIT(to_emit.str());
     }
+    void handle_if_statsment(int exp_reg,Statment if_statment,Statment else_statment=nullptr){
+        stringstream to_emit;
+        int temp_reg = fresh_var();
+        int branch_pointer;
+        to_emit << make_var(temp_reg) << " = " << "cmpi eq i32 0," << make_var(exp_reg) <<endl;
+        EMIT(to_emit.str()); 
+        to_emit.flush();
+
+        if(else_statment!= nullptr){
+            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment.starting_line_lable << ", lable "<< else_statment.starting_line_lable <<endl;
+            EMIT(to_emit.str());    
+        }
+        else{
+            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment.starting_line_lable << ", lable @"<<endl;
+            branch_pointer = EMIT(to_emit.str()); 
+        }
+        
+
+        string next_instruction_lable = CodeBuffer::instance().genLabel();
+        BPATCH(if_statment.exit,next_instruction_lable);
+        if(else_statment!= nullptr){
+            BPATCH(else_statment.exit,next_instruction_lable);
+        }
+        else{
+            BPATCH(CodeBuffer::makelist({branch_pointer, SECOND},next_instruction_lable);
+        }
+
+    }
 } // namespace utils_hw5
 
 #endif
