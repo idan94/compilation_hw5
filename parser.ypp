@@ -270,7 +270,7 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
-                  TODO: wrong ! this does not assign to var ! but to a veriable in the veriable tabel !
+                  //TODO: wrong ! this does not assign to var ! but to a veriable in the veriable tabel !
                   utils_hw5::assign_id(*$2, $4->register_number);
                   //HW5~
                   delete $1;
@@ -576,7 +576,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->type = $2->type;
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                   utils_hw5::flip_bool_value($$->register_number,$1->register_number)
+                   utils_hw5::flip_bool_value($$->register_number,$2->register_number);
                   // HW5~
                   delete $2;
                }
@@ -594,7 +594,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"AND")
+                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"AND");
                   // HW5~
                   delete $1;
                   delete $3;
@@ -613,7 +613,7 @@ Exp:           LPAREN Exp RPAREN       {
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"OR")
+                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"OR");
                   // HW5~
                   delete $1;
                   delete $3;

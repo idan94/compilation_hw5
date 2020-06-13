@@ -204,19 +204,19 @@ namespace utils_hw5
     void flip_bool_value(int output_reg,int input_reg){
         stringstream to_emit;
         to_emit  << make_var(output_reg) << " = " << "sub i32 1," <<  make_var(input_reg);
-        EMIT(to_emit);
+        EMIT(to_emit.str());
     }
     void bit_by_bit_operand(int output_reg,int input_reg_a,int input_reg_b,string op){
         string op_code;
-        if(!op.equals("OR")){
-            op_code = " or i32"
+        if(!op.compare("OR")){
+            op_code = " or i32";
         }
         else{
-            op_code = " and i32"
+            op_code = " and i32";
         }
         stringstream to_emit;
         to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
-        EMIT(to_emit);
+        EMIT(to_emit.str());
     }
 } // namespace utils_hw5
 
