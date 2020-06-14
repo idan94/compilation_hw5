@@ -257,7 +257,7 @@ namespace utils_hw5
             int temp_reg_pointer = fresh_var();
             to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
             to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
-            EMIT(to_emit);
+            EMIT(to_emit.str());
             to_emit.flush();
 
             if(is_initilized){
@@ -267,9 +267,14 @@ namespace utils_hw5
                  to_emit << "store i32 " << 0;
             }
             to_emit << ", " << make_var(temp_reg_pointer);
-            EMIT(to_emit);
-            
+            EMIT(to_emit.str());
 
+
+    }
+    void allocate_new_stack(int reg_number){
+        stringstream to_emit;
+        to_emit << make_var(reg_number) << " = aloca [50 x i32]";
+        EMIT(to_emit.str());
     }
 
 } // namespace utils_hw5

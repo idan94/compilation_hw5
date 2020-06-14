@@ -30,6 +30,7 @@
    vector<queue<string>>* insertion_orders;
    stack<int>* offsets;
    map<string,pair<string, int>>* t;
+   stack<int>* current_stack_register;
 
    int yylex();
    void yyerror(const char*);
@@ -156,6 +157,13 @@ Marker1:       /*epsilon*/       {
       insert("printi", output::makeFunctionType(TYPE_VOID, args_to_print),0, true);
       utils_hw5::add_printi_function();
       push_regular_scope();
+      //HW5:
+      //allocating the stack for the global veriables
+      // we assume that there will be less then 50 global veriables
+      //TODO: check that, it is not written! 
+      current_stack_register.push(utils_hw5::fresh_var());
+      utils_hw5::allocate_new_stack(current_stack_register.top());
+       //HW5~
 }
 Funcs:         /*epsilon*/       {}
                | FuncDecl Funcs        {}
@@ -288,10 +296,9 @@ Statement:
                | Type ID SC         {
                   insert(*$2,*$1, top_offsets(), false);
                   //HW5:
-                  //TODO: the pointer to the current stack
-
+                 
                   int offset = get_id_offset($2->name,tables);
-                  utils_hw5::store_at_offset(POINTER_TO_STACK,offset,-1,false)
+                  utils_hw5::store_at_offset(current_stack_register.top(),offset,-1,false)
 
                   //HW5~
                   top_offsets() += 1;
@@ -311,10 +318,10 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
-                  //TODO: wrong ! this does not assign to var ! but to a veriable in the veriable tabel !
-                  //TODO: copy from Type ID SC 
-                  utils_hw5::assign_id(*$2, $4->register_number);
+                  int offset = get_id_offset($2->name,tables);
+                  utils_hw5::store_at_offset(current_stack_register.top(),offset,$4->register_number)
                   //HW5~
+
                   delete $1;
                   delete $2;
                   delete $4;
@@ -335,6 +342,10 @@ Statement:
                      delete $3;
                      exit(0);
                   }
+                  //HW5:
+                  int offset = get_id_offset($1->name,tables);
+                  utils_hw5::store_at_offset(current_stack_register.top(),offset,$3->register_number)
+                  //HW5~
                   delete $1;
                   delete $3;
                }
@@ -930,6 +941,7 @@ int main(){
    offsets = new stack<int>();
    insertion_orders = new vector<queue<string>> ();
    scope_type = new stack<string>();
+   current_stack_register = new stack<int>()
    auto return_parse = yyparse();
    delete tables;
    delete offsets;
