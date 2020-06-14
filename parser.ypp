@@ -76,10 +76,11 @@
    string* id_name;
    string* str;
    string* return_type;
+   vector<pair<int,BranchLabelIndex>>* branch_location;
    Expression* expression;
    Statement* statment;
    Formal* formal;
-   string* label;
+   string* lable;
 }
 
 %nonassoc VOID    
@@ -123,7 +124,9 @@
 %type <type> Type
 %type <statment> Statement
 %type <statment> Statements
-%type <label> Marker2;
+%type <lable> Exp_marker_begin
+%type <branch_location> Exp_marker_end
+
 %%
 
 Program:       Marker1 Funcs       {
@@ -160,6 +163,7 @@ Marker1:       /*epsilon*/       {
       utils_hw5::add_printi_function();
       push_regular_scope();
       //HW5:
+
       //allocating the stack for the global veriables
       // we assume that there will be less then 50 global veriables
       //TODO: check that, it is not written! 
@@ -242,12 +246,26 @@ FormalsDecl:   Type ID        {
                   delete $2;
 }
 ;
+
+Exp_marker_begin:      { /*epsilon*/ 
+                  $$ = new string();
+                  $$ = utils_hw5::GEN_LABEL();
+}
+;
+
+Exp_marker_end:      { /*epsilon*/ 
+                  $$ = new vector<pair<int,BranchLabelIndex>>();
+                  $$ = utils_hw5::create_unconditional_branch();
+}
+;
+
 Statements:    Statement        {
                   $$ = $1;
                 }
                | Statements Statement        {
-                  $$ = $2;
-                  //utils_hw5::append_statements(*$$,*$2);
+                  $$ = $1;
+                  utils_hw5::append_statements(*$$,*$2);
+                  delete $2;
                }
 ;
 Statement:     
@@ -257,7 +275,8 @@ Statement:
                   //HW5:
                   $$ = new Statement();
                   // to do using markers - fix
-                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,*$5,$6);
+                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
+                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6);
                   //HW5~
                   delete $3;
                   delete $6;
@@ -267,43 +286,36 @@ Statement:
                   //HW5:
                   $$ = new Statement();
                   // to do using markers - fix
-                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,*$5,$6,*$9,$10);
+                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
+                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6,$10);
                   //HW5~
                   delete $3;
                   delete $6;
                   delete $10;
                }
-               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3    {
-                  check_bool_exp($3->type);
+               | WHILE LPAREN Exp_marker_begin Exp Exp_marker_end RPAREN Marker4 Statement Marker3    {
+                  check_bool_exp($4->type);
                   //HW5:
-                  $$ = new Statement();
-                     // need to use the phi function to recalculate the expresion
-                     //marker
-                     // fuuuuuuuuuuuuuuuuuuuuuuuuuuuudge 
+                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,$8);
                   //HW5~
-                  delete $3;
+                  delete $4;
                }
-               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
-                  check_bool_exp($3->type);
+               | WHILE LPAREN Exp_marker_begin Exp Exp_marker_end RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
+                  check_bool_exp($4->type);
                   //HW5:
-                  
-                  $$ = new Statement();
+                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,$8,$12);
                   //HW5~
-                 
-                  delete $3;
-
+                  delete $4;
                }
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
                | LBRACE Marker2 Statements Marker3 RBRACE  {
                   //HW5:
-                  $$ = new Statement();
                   $$ = $3;
                   //HW5~
                }
                | Type ID SC         {
                   insert(*$2,*$1, top_offsets(), false);
                   //HW5:
-                  $$ = new Statement();
                  
                   int offset = get_id_offset(*$2,*tables);
                   utils_hw5::store_at_offset(current_stack_register->top(),offset,-1,false);
@@ -326,7 +338,6 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
-                  $$ = new Statement();
                   int offset = get_id_offset(*$2,*tables);
                   utils_hw5::store_at_offset(current_stack_register->top(),offset,$4->register_number);
                   //HW5~
@@ -352,7 +363,6 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   int offset = get_id_offset(*$1,*tables);
                   utils_hw5::store_at_offset(current_stack_register->top(),offset,$3->register_number);
                   //HW5~
@@ -360,9 +370,6 @@ Statement:
                   delete $3;
                }
                | Call SC         {
-                  //HW5:
-                  $$ = new Statement();
-                  //HW5~
                   delete $1;
                }
                | RETURN SC       {
@@ -370,9 +377,6 @@ Statement:
                      output::errorMismatch(yylineno);
                      exit(0);
                   }
-                  //HW5:
-                  $$ = new Statement();
-                  //HW5~
                }
                | RETURN Exp SC         {
                   string current_fun_return_type = get_current_function_return_type(*insertion_orders);
@@ -382,9 +386,6 @@ Statement:
                      delete $2;
                      exit(0);
                   }
-                  //HW5:
-                  $$ = new Statement();
-                  //HW5~
                   delete $2;
                }
                | BREAK SC        {
@@ -392,18 +393,12 @@ Statement:
                      output::errorUnexpectedBreak(yylineno);
                      exit(0);
                   }
-                  //HW5:
-                  $$ = new Statement();
-                  //HW5~
                }
                | CONTINUE SC        {
                   if(!check_while_scope()){
                      output::errorUnexpectedContinue(yylineno);
                      exit(0);
                   }
-                  //HW5:
-                  $$ = new Statement();
-                  //HW5~
                }
 ;
 Marker2:       /*epsilon*/        {
@@ -418,7 +413,6 @@ Marker2:       /*epsilon*/        {
       // and because the while pushes a while_scope to the scope stack
       // this marker keeps the break leagal inside the while
       push_top_scope();
-      $$ = new string(CodeBuffer::instance().genLabel());
 }
 Marker3:       /*epsilon*/        {
       output::endScope();
