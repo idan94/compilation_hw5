@@ -246,6 +246,7 @@ Statement:
                   check_bool_exp($3->type);
                   //HW5:
                   $$ = new Statement();
+                  // to do using markers - fix
                   $$->starting_line_lable = CodeBuffer::instance().genLabel();
                   $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6);
                   //HW5~
@@ -256,6 +257,7 @@ Statement:
                   check_bool_exp($3->type);
                   //HW5:
                   $$ = new Statement();
+                  // to do using markers - fix
                   $$->starting_line_lable = CodeBuffer::instance().genLabel();
                   $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6,$10);
                   //HW5~
@@ -611,7 +613,7 @@ Exp:           LPAREN Exp RPAREN       {
                   delete $2;
                }
                | Exp AND Exp        {
-                  //TODO: Nadav
+                  //TODO: Nadav - fix
                   $$ = new Expression(); 
                   string a_type = $1->type;
                   if(a_type.empty()){
@@ -630,7 +632,7 @@ Exp:           LPAREN Exp RPAREN       {
                   delete $3;
                }
                | Exp OR Exp        {
-                  //TODO: Nadav
+                  //TODO: Nadav - fix
                   $$ = new Expression();
                   string a_type = $1->type;
                   if(a_type.empty()){

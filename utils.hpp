@@ -228,7 +228,7 @@ namespace utils_hw5
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
-        to_emit << make_var(temp_reg) << " = " << "cmpi eq i32 0," << make_var(exp_reg) <<endl;
+        to_emit << make_var(temp_reg) << " = " << "cmpi neq i32 0, " << make_var(exp_reg) <<endl;
         EMIT(to_emit.str()); 
         to_emit.flush();
 
@@ -242,18 +242,15 @@ namespace utils_hw5
         }
         
 
-        string next_instruction_lable = CodeBuffer::instance().genLabel();
-        BPATCH(if_statment->exit,next_instruction_lable);
+        vector<pair<int,BranchLabelIndex>> exits = {};
+        exits = MERGE(exits,if_statment->exit)
         if(else_statment!= nullptr){
-            BPATCH(else_statment->exit,next_instruction_lable);
+            exits = MERGE(else_statment->exit,exits);
         }
         else{
-            BPATCH(CodeBuffer::makelist({branch_pointer, SECOND}),next_instruction_lable);
+            exits = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),exits);
         }
-        // create the exit of the if statment 
-        to_emit.flush();
-        to_emit << "br lable @ ";
-        return CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
+        return exits;
     }
 
 } // namespace utils_hw5
