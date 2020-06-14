@@ -278,7 +278,7 @@ namespace utils_hw5
     }
     vector<pair<int,BranchLabelIndex>>* create_unconditional_branch(){
         vector<pair<int,BranchLabelIndex>>* return_value = new vector<pair<int,BranchLabelIndex>>();
-        return_value* =  CodeBuffer::makelist({EMIT("br lable @"),FIRST});
+        *return_value =  CodeBuffer::makelist({EMIT("br lable @"),FIRST});
         return return_value;
     }
     vector<pair<int,BranchLabelIndex>> handle_while_else_statment(string exp_begin_lable,int exp_reg_number,

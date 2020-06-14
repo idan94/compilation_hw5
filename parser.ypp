@@ -249,7 +249,7 @@ FormalsDecl:   Type ID        {
 
 Exp_marker_begin:      { /*epsilon*/ 
                   $$ = new string();
-                  $$ = utils_hw5::GEN_LABEL();
+                  *$$ = CodeBuffer::instance().genLabel();
 }
 ;
 
