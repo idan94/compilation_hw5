@@ -256,8 +256,8 @@ Statement:
                   //HW5:
                   $$ = new Statement();
                   // to do using markers - fix
-                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
-                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6);
+                  $$->starting_line_label = CodeBuffer::instance().genLabel();
+                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,$6);
                   //HW5~
                   delete $3;
                   delete $6;
@@ -267,8 +267,8 @@ Statement:
                   //HW5:
                   $$ = new Statement();
                   // to do using markers - fix
-                  $$->starting_line_lable = CodeBuffer::instance().genLabel();
-                  $$->exit = utils_hw5::handle_if_statsment($3->register_number,$6,$10);
+                  $$->starting_line_label = CodeBuffer::instance().genLabel();
+                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,$6,$10);
                   //HW5~
                   delete $3;
                   delete $6;

@@ -49,8 +49,8 @@ namespace utils_hw5
         // %var5 = add i32 0, number_to_assign
     }
     void append_statements(Statement& first,Statement& second){
-        BPATCH(first.exit, second.starting_line_lable);
-        first.exit = second.exit;
+        BPATCH(first.next_list, second.starting_line_label);
+        first.next_list = second.next_list;
     }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
@@ -233,24 +233,24 @@ namespace utils_hw5
         to_emit.flush();
 
         if(else_statment != nullptr){
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable "<< else_statment->starting_line_lable;
+            to_emit << "br i1 " << make_var(temp_reg)<<", label "<< if_statment->starting_line_label << ", label "<< else_statment->starting_line_label;
             EMIT(to_emit.str());    
         }
         else{
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable @";
+            to_emit << "br i1 " << make_var(temp_reg)<<", label "<< if_statment->starting_line_label << ", label @";
             branch_pointer = EMIT(to_emit.str()); 
         }
         
 
-        vector<pair<int,BranchLabelIndex>> exits = {};
-        exits = MERGE(exits,if_statment->exit);
+        vector<pair<int,BranchLabelIndex>> next_lists = {};
+        next_lists = MERGE(next_lists,if_statment->next_list);
         if(else_statment!= nullptr){
-            exits = MERGE(else_statment->exit,exits);
+            next_lists = MERGE(else_statment->next_list,next_lists);
         }
         else{
-            exits = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),exits);
+            next_lists = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),next_lists);
         }
-        return exits;
+        return next_lists;
     }
     void store_at_offset(int pointer,int offset,int register_number, bool is_initilized = true){
             stringstream to_emit;

@@ -31,9 +31,9 @@ struct Expression{
 };
 
 struct Statement{
-   string starting_line_lable;
-   vector<pair<int,BranchLabelIndex>> exit;
-   Statement() : starting_line_lable{-1}, exit{vector<pair<int,BranchLabelIndex>>{}} {}
+   string starting_line_label;
+   vector<pair<int,BranchLabelIndex>> next_list;
+   Statement() : starting_line_label{-1}, next_list{vector<pair<int,BranchLabelIndex>>{}} {}
 };
 
 typedef struct Formal Formal;
