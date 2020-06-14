@@ -11,7 +11,7 @@
 #define EMIT_GLOBAL(to_emit) CodeBuffer::instance().emitGlobal(to_emit)
 #define GEN_LABEL() CodeBuffer::instance().genLabel()
 #define BPATCH(address_list, label) CodeBuffer::instance().bpatch(address_list, label)
-#define MERGE(list_1,list_2) CodeBuffer::merge(list_1,list_2)
+#define MERGE(list_1, list_2) CodeBuffer::merge(list_1, list_2)
 
 using namespace std;
 
@@ -48,10 +48,11 @@ namespace utils_hw5
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
     }
-    void append_statements(Statement& first,Statement& second){
-        BPATCH(first.exit, second.starting_line_lable);
-        first.exit = second.exit;
-    }
+    // void append_statements(Statement &first, Statement &second)
+    // {
+    //     BPATCH(first.next_list, second.starting_line_label); //TODO: DELETE
+    //     first.next_list = second.next_list;
+    // }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
     // {
@@ -181,7 +182,7 @@ namespace utils_hw5
     void load_id_to_reg(const string &id_reg, int reg_number)
     {
         stringstream to_emit;
-        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the 
+        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the
         // aloca function
         to_emit << make_var(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
         EMIT(to_emit.str());
@@ -207,71 +208,85 @@ namespace utils_hw5
         EMIT("    ret void");
         EMIT("}");
     }
-    void flip_bool_value(int output_reg,int input_reg){
+    void flip_bool_value(int output_reg, int input_reg)
+    {
         stringstream to_emit;
-        to_emit  << make_var(output_reg) << " = " << "sub i32 1," <<  make_var(input_reg);
+        to_emit << make_var(output_reg) << " = "
+                << "sub i32 1," << make_var(input_reg);
         EMIT(to_emit.str());
     }
-    void bit_by_bit_operand(int output_reg,int input_reg_a,int input_reg_b,string op){
+    void bit_by_bit_operand(int output_reg, int input_reg_a, int input_reg_b, string op)
+    {
         string op_code;
-        if(!op.compare("OR")){
+        if (!op.compare("OR"))
+        {
             op_code = " or i32";
         }
-        else{
+        else
+        {
             op_code = " and i32";
         }
         stringstream to_emit;
-        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
+        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " << make_var(input_reg_b);
         EMIT(to_emit.str());
     }
-    vector<pair<int,BranchLabelIndex>> handle_if_statsment(int exp_reg,Statement* if_statment,Statement* else_statment = nullptr){
+    vector<pair<int, BranchLabelIndex>> handle_if_statsment(int exp_reg, const string &if_block_label, Statement *if_statment,
+                                                            const string &else_block_label = nullptr, Statement *else_statment = nullptr)
+    {
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
-        to_emit << make_var(temp_reg) << " = " << "cmpi neq i32 0, " << make_var(exp_reg);
-        EMIT(to_emit.str()); 
-        to_emit.flush();
+        to_emit << make_var(temp_reg) << " = "
+                << "cmpi neq i32 0, " << make_var(exp_reg);
+        EMIT(to_emit.str());
+        to_emit.str("");
 
-        if(else_statment != nullptr){
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable "<< else_statment->starting_line_lable;
-            EMIT(to_emit.str());    
-        }
-        else{
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable @";
-            branch_pointer = EMIT(to_emit.str()); 
-        }
-        
-
-        vector<pair<int,BranchLabelIndex>> exits = {};
-        exits = MERGE(exits,if_statment->exit);
-        if(else_statment!= nullptr){
-            exits = MERGE(else_statment->exit,exits);
-        }
-        else{
-            exits = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),exits);
-        }
-        return exits;
-    }
-    void store_at_offset(int pointer,int offset,int register_number, bool is_initilized = true){
-            stringstream to_emit;
-            int temp_reg_pointer = fresh_var();
-            to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
-            to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+        if (else_statment != nullptr)
+        { //TODO: DELETE
+            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label " << else_block_label;
             EMIT(to_emit.str());
-            to_emit.flush();
+        }
+        else
+        { //TODO: DELETE
+            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label @";
+            branch_pointer = EMIT(to_emit.str());
+        }
 
-            if(is_initilized){
-                to_emit << "store i32 " << make_var(register_number);
-            }
-            else{
-                 to_emit << "store i32 " << 0;
-            }
-            to_emit << ", " << make_var(temp_reg_pointer);
-            EMIT(to_emit.str());
-
-
+        vector<pair<int, BranchLabelIndex>> next_lists = {};
+        next_lists = MERGE(next_lists, if_statment->next_list);
+        if (else_statment != nullptr)
+        {
+            next_lists = MERGE(else_statment->next_list, next_lists);
+        }
+        else
+        {
+            next_lists = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}), next_lists);
+        }
+        return next_lists;
     }
-    void allocate_new_stack(int reg_number){
+
+    void store_at_offset(int pointer, int offset, int register_number, bool is_initilized = true)
+    {
+        stringstream to_emit;
+        int temp_reg_pointer = fresh_var();
+        to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
+        to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        if (is_initilized)
+        {
+            to_emit << "store i32 " << make_var(register_number);
+        }
+        else
+        {
+            to_emit << "store i32 " << 0;
+        }
+        to_emit << ", " << make_var(temp_reg_pointer);
+        EMIT(to_emit.str());
+    }
+    void allocate_new_stack(int reg_number)
+    {
         stringstream to_emit;
         to_emit << make_var(reg_number) << " = aloca [50 x i32]";
         EMIT(to_emit.str());
