@@ -161,8 +161,8 @@ Marker1:       /*epsilon*/       {
       //allocating the stack for the global veriables
       // we assume that there will be less then 50 global veriables
       //TODO: check that, it is not written! 
-      current_stack_register.push(utils_hw5::fresh_var());
-      utils_hw5::allocate_new_stack(current_stack_register.top());
+      current_stack_register->push(utils_hw5::fresh_var());
+      utils_hw5::allocate_new_stack(current_stack_register->top());
        //HW5~
 }
 Funcs:         /*epsilon*/       {}
@@ -297,8 +297,8 @@ Statement:
                   insert(*$2,*$1, top_offsets(), false);
                   //HW5:
                  
-                  int offset = get_id_offset($2->name,tables);
-                  utils_hw5::store_at_offset(current_stack_register.top(),offset,-1,false)
+                  int offset = get_id_offset(*$2,*tables);
+                  utils_hw5::store_at_offset(current_stack_register->top(),offset,-1,false);
 
                   //HW5~
                   top_offsets() += 1;
@@ -318,8 +318,8 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
-                  int offset = get_id_offset($2->name,tables);
-                  utils_hw5::store_at_offset(current_stack_register.top(),offset,$4->register_number)
+                  int offset = get_id_offset(*$2,*tables);
+                  utils_hw5::store_at_offset(current_stack_register->top(),offset,$4->register_number);
                   //HW5~
 
                   delete $1;
@@ -343,8 +343,8 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  int offset = get_id_offset($1->name,tables);
-                  utils_hw5::store_at_offset(current_stack_register.top(),offset,$3->register_number)
+                  int offset = get_id_offset(*$1,*tables);
+                  utils_hw5::store_at_offset(current_stack_register->top(),offset,$3->register_number);
                   //HW5~
                   delete $1;
                   delete $3;
@@ -941,7 +941,7 @@ int main(){
    offsets = new stack<int>();
    insertion_orders = new vector<queue<string>> ();
    scope_type = new stack<string>();
-   current_stack_register = new stack<int>()
+   current_stack_register = new stack<int>();
    auto return_parse = yyparse();
    delete tables;
    delete offsets;

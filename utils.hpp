@@ -243,7 +243,7 @@ namespace utils_hw5
         
 
         vector<pair<int,BranchLabelIndex>> exits = {};
-        exits = MERGE(exits,if_statment->exit)
+        exits = MERGE(exits,if_statment->exit);
         if(else_statment!= nullptr){
             exits = MERGE(else_statment->exit,exits);
         }
@@ -252,7 +252,7 @@ namespace utils_hw5
         }
         return exits;
     }
-    void store_at_offset(int pointer,int offset,int register, bool is_initilized = true){
+    void store_at_offset(int pointer,int offset,int register_number, bool is_initilized = true){
             stringstream to_emit;
             int temp_reg_pointer = fresh_var();
             to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
@@ -261,7 +261,7 @@ namespace utils_hw5
             to_emit.flush();
 
             if(is_initilized){
-                to_emit << "store i32 " << make_var(register);
+                to_emit << "store i32 " << make_var(register_number);
             }
             else{
                  to_emit << "store i32 " << 0;
