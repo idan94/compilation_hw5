@@ -33,7 +33,7 @@ struct Expression{
 struct Statement{
    string starting_line_lable;
    vector<pair<int,BranchLabelIndex>> exit;
-   Statement() : starting_line_lable{-1}, exit{vector<pair<int,BranchLabelIndex>>{pair<int,BranchLabelIndex>(-1,FIRST)}} {}
+   Statement() : starting_line_lable{-1}, exit{vector<pair<int,BranchLabelIndex>>{}} {}
 };
 
 typedef struct Formal Formal;
