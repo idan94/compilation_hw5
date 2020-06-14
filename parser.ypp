@@ -76,9 +76,11 @@
    string* id_name;
    string* str;
    string* return_type;
+   vector<pair<int,BranchLabelIndex>>* branch_location;
    Expression* expression;
    Statement* statment;
    Formal* formal;
+   string* lable;
 }
 
 %nonassoc VOID    
@@ -122,6 +124,9 @@
 %type <type> Type
 %type <statment> Statement
 %type <statment> Statements
+%type <lable> Exp_marker_begin
+%type <branch_location> Exp_marker_end
+
 %%
 
 Program:       Marker1 Funcs       {
@@ -158,6 +163,7 @@ Marker1:       /*epsilon*/       {
       utils_hw5::add_printi_function();
       push_regular_scope();
       //HW5:
+
       //allocating the stack for the global veriables
       // we assume that there will be less then 50 global veriables
       //TODO: check that, it is not written! 
@@ -240,6 +246,19 @@ FormalsDecl:   Type ID        {
                   delete $2;
 }
 ;
+
+Exp_marker_begin:      { /*epsilon*/ 
+                  $$ = new string();
+                  $$ = utils_hw5::GEN_LABEL();
+}
+;
+
+Exp_marker_end:      { /*epsilon*/ 
+                  $$ = new vector<pair<int,BranchLabelIndex>>();
+                  $$ = utils_hw5::create_unconditional_branch();
+}
+;
+
 Statements:    Statement        {
                   $$ = $1;
                 }
@@ -274,18 +293,19 @@ Statement:
                   delete $6;
                   delete $10;
                }
-               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3    {
-                  check_bool_exp($3->type);
+               | WHILE LPAREN Exp_marker_begin Exp Exp_marker_end RPAREN Marker4 Statement Marker3    {
+                  check_bool_exp($4->type);
                   //HW5:
-                     // need to use the phi function to recalculate the expresion
-                     //marker
-                     // fuuuuuuuuuuuuuuuuuuuuuuuuuuuudge 
+                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,$8);
                   //HW5~
-                  delete $3;
+                  delete $4;
                }
-               | WHILE LPAREN Exp RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
-                  check_bool_exp($3->type);
-                  delete $3;
+               | WHILE LPAREN Exp_marker_begin Exp Exp_marker_end RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
+                  check_bool_exp($4->type);
+                  //HW5:
+                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,$8,$12);
+                  //HW5~
+                  delete $4;
                }
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
                | LBRACE Marker2 Statements Marker3 RBRACE  {

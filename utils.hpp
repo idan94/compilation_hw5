@@ -228,7 +228,7 @@ namespace utils_hw5
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
-        to_emit << make_var(temp_reg) << " = " << "cmpi neq i32 0, " << make_var(exp_reg);
+        to_emit << make_var(temp_reg) << " = " << "cmpi ne i32 0, " << make_var(exp_reg);
         EMIT(to_emit.str()); 
         to_emit.flush();
 
@@ -275,6 +275,46 @@ namespace utils_hw5
         stringstream to_emit;
         to_emit << make_var(reg_number) << " = aloca [50 x i32]";
         EMIT(to_emit.str());
+    }
+    vector<pair<int,BranchLabelIndex>>* create_unconditional_branch(){
+        vector<pair<int,BranchLabelIndex>>* return_value = new vector<pair<int,BranchLabelIndex>>();
+        return_value* =  CodeBuffer::makelist({EMIT("br lable @"),FIRST});
+        return return_value;
+    }
+    vector<pair<int,BranchLabelIndex>> handle_while_else_statment(string exp_begin_lable,int exp_reg_number,
+                    vector<pair<int,BranchLabelIndex>> after_exp_branch,
+                    Statement* while_code,Statement* else_code = nullptr){
+        stringstream to_emit;
+        int condition_var = fresh_var();
+        vector<pair<int,BranchLabelIndex>> exits = {};
+        // first we check if the expression is true or false
+        string checking_the_expression_lable = GEN_LABEL();
+        to_emit << make_var(condition_var) << " = icmp ne i32 0," << make_var(exp_reg_number);
+        EMIT(to_emit.str());
+        to_emit.flush();
+        to_emit << "br i1 " << make_var(condition_var) << ", label " << while_code->starting_line_lable << ",label @";
+        int where_to_brunch = EMIT(to_emit.str());
+        to_emit.flush();
+        string after_the_while_code = GEN_LABEL();
+        // now check if there is an else code
+        if(else_code != nullptr){
+            BPATCH(CodeBuffer::makelist({where_to_brunch,SECOND}),else_code->starting_line_lable);
+            exits = MERGE(exits,else_code->exit);
+        }
+        else{
+            exits = MERGE(exits,CodeBuffer::makelist({where_to_brunch,SECOND}));
+        }
+        BPATCH(while_code->exit,after_the_while_code);
+        // after doing the while code, gets here, and now recalculate the expression and check stuff
+        to_emit << "br lable " << exp_begin_lable;        
+        EMIT(to_emit.str());
+        string after_exp_lable = GEN_LABEL();
+        BPATCH(after_exp_branch,after_exp_lable);
+        // computed the exp, now branch to the comparing fase again
+        to_emit.flush();
+        to_emit << "br lable " << checking_the_expression_lable;
+        EMIT(to_emit.str());
+        return exits;
     }
 
 } // namespace utils_hw5
