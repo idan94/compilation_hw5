@@ -58,6 +58,7 @@
    bool check_while_scope();
    void assign_type_check(string var,string exp);
    string get_id_type(const string name, const vector<map<string, pair<string, int>>> &tables);
+   int get_id_offset(const string name, const vector<map<string, pair<string, int>>> &tables);
    string get_current_function_return_type(const vector<queue<string>> stack_queues);
    string vectorToString(const std::vector<string>& argTypes);
    vector<string> split_str(string str, string delimiter);
@@ -269,6 +270,7 @@ Statement:
                   check_bool_exp($3->type);
                   //HW5:
                      // need to use the phi function to recalculate the expresion
+                     //marker
                      // fuuuuuuuuuuuuuuuuuuuuuuuuuuuudge 
                   //HW5~
                   delete $3;
@@ -280,11 +282,18 @@ Statement:
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
                | LBRACE Marker2 Statements Marker3 RBRACE  {
                   //HW5:
-
+                  $$ = $3;
                   //HW5~
                }
                | Type ID SC         {
                   insert(*$2,*$1, top_offsets(), false);
+                  //HW5:
+                  //TODO: the pointer to the current stack
+
+                  int offset = get_id_offset($2->name,tables);
+                  utils_hw5::store_at_offset(POINTER_TO_STACK,offset,-1,false)
+
+                  //HW5~
                   top_offsets() += 1;
                   delete $1;
                   delete $2;
@@ -303,6 +312,7 @@ Statement:
                   }
                   //HW5:
                   //TODO: wrong ! this does not assign to var ! but to a veriable in the veriable tabel !
+                  //TODO: copy from Type ID SC 
                   utils_hw5::assign_id(*$2, $4->register_number);
                   //HW5~
                   delete $1;
@@ -869,6 +879,22 @@ string vectorToString(const std::vector<string>& argTypes) {
    output::errorUndef(yylineno, name);
    exit(0);
 }
+
+int get_id_offset(const string name, const vector<map<string, pair<string, int>>> &tables){
+   //TODO: new function please check this
+   for(auto map_iterator = tables.end()-1 ; map_iterator >= tables.begin() ; map_iterator-- ){
+      auto id_iterator= map_iterator->find(name);
+      if (id_iterator != map_iterator->end()) {
+            // if reached here, that means the key already is in some table
+            int offset = id_iterator->second.second;
+            return offset;
+      }
+   }
+   output::errorUndef(yylineno, name);
+   exit(0);
+}
+
+
 vector<string> split_str(string str, string delimiter){
    if(str[0] == '('){
       str.erase(0,1);

@@ -228,16 +228,16 @@ namespace utils_hw5
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
-        to_emit << make_var(temp_reg) << " = " << "cmpi neq i32 0, " << make_var(exp_reg) <<endl;
+        to_emit << make_var(temp_reg) << " = " << "cmpi neq i32 0, " << make_var(exp_reg);
         EMIT(to_emit.str()); 
         to_emit.flush();
 
         if(else_statment != nullptr){
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable "<< else_statment->starting_line_lable <<endl;
+            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable "<< else_statment->starting_line_lable;
             EMIT(to_emit.str());    
         }
         else{
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable @"<<endl;
+            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable @";
             branch_pointer = EMIT(to_emit.str()); 
         }
         
@@ -251,6 +251,25 @@ namespace utils_hw5
             exits = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),exits);
         }
         return exits;
+    }
+    void store_at_offset(int pointer,int offset,int register, bool is_initilized = true){
+            stringstream to_emit;
+            int temp_reg_pointer = fresh_var();
+            to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
+            to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+            EMIT(to_emit);
+            to_emit.flush();
+
+            if(is_initilized){
+                to_emit << "store i32 " << make_var(register);
+            }
+            else{
+                 to_emit << "store i32 " << 0;
+            }
+            to_emit << ", " << make_var(temp_reg_pointer);
+            EMIT(to_emit);
+            
+
     }
 
 } // namespace utils_hw5
