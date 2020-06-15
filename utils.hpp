@@ -11,7 +11,7 @@
 #define EMIT_GLOBAL(to_emit) CodeBuffer::instance().emitGlobal(to_emit)
 #define GEN_LABEL() CodeBuffer::instance().genLabel()
 #define BPATCH(address_list, label) CodeBuffer::instance().bpatch(address_list, label)
-#define MERGE(list_1,list_2) CodeBuffer::merge(list_1,list_2)
+#define MERGE(list_1, list_2) CodeBuffer::merge(list_1, list_2)
 
 using namespace std;
 
@@ -48,10 +48,11 @@ namespace utils_hw5
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
     }
-    void append_statements(Statement& first,Statement& second){
-        BPATCH(first.exit, second.starting_line_lable);
-        first.exit = second.exit;
-    }
+    // void append_statements(Statement &first, Statement &second)
+    // {
+    //     BPATCH(first.next_list, second.starting_line_label);
+    //     first.next_list = second.next_list;
+    // }
 
     // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
     // {
@@ -181,7 +182,7 @@ namespace utils_hw5
     void load_id_to_reg(const string &id_reg, int reg_number)
     {
         stringstream to_emit;
-        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the 
+        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the
         // aloca function
         to_emit << make_var(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
         EMIT(to_emit.str());
@@ -207,114 +208,132 @@ namespace utils_hw5
         EMIT("    ret void");
         EMIT("}");
     }
-    void flip_bool_value(int output_reg,int input_reg){
+    void flip_bool_value(int output_reg, int input_reg)
+    {
         stringstream to_emit;
-        to_emit  << make_var(output_reg) << " = " << "sub i32 1," <<  make_var(input_reg);
+        to_emit << make_var(output_reg) << " = "
+                << "sub i32 1," << make_var(input_reg);
         EMIT(to_emit.str());
     }
-    void bit_by_bit_operand(int output_reg,int input_reg_a,int input_reg_b,string op){
+    void bit_by_bit_operand(int output_reg, int input_reg_a, int input_reg_b, string op)
+    {
         string op_code;
-        if(!op.compare("OR")){
+        if (!op.compare("OR"))
+        {
             op_code = " or i32";
         }
-        else{
+        else
+        {
             op_code = " and i32";
         }
         stringstream to_emit;
-        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " <<  make_var(input_reg_b);
+        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " << make_var(input_reg_b);
         EMIT(to_emit.str());
     }
-    vector<pair<int,BranchLabelIndex>> handle_if_statsment(int exp_reg,Statement* if_statment,Statement* else_statment = nullptr){
+    vector<pair<int, BranchLabelIndex>> handle_if_statsment(int exp_reg, const string &if_block_label, Statement *if_statment,
+                                                            const string &else_block_label = nullptr, Statement *else_statment = nullptr)
+    {
         stringstream to_emit;
         int temp_reg = fresh_var();
         int branch_pointer;
-        to_emit << make_var(temp_reg) << " = " << "cmpi ne i32 0, " << make_var(exp_reg);
-        EMIT(to_emit.str()); 
-        to_emit.flush();
+        to_emit << make_var(temp_reg) << " = "
+                << "cmpi neq i32 0, " << make_var(exp_reg);
+        EMIT(to_emit.str());
+        to_emit.str("");
 
-        if(else_statment != nullptr){
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable "<< else_statment->starting_line_lable;
-            EMIT(to_emit.str());    
-        }
-        else{
-            to_emit << "br i1 " << make_var(temp_reg)<<", lable "<< if_statment->starting_line_lable << ", lable @";
-            branch_pointer = EMIT(to_emit.str()); 
-        }
-        
-
-        vector<pair<int,BranchLabelIndex>> exits = {};
-        exits = MERGE(exits,if_statment->exit);
-        if(else_statment!= nullptr){
-            exits = MERGE(else_statment->exit,exits);
-        }
-        else{
-            exits = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}),exits);
-        }
-        return exits;
-    }
-    void store_at_offset(int pointer,int offset,int register_number, bool is_initilized = true){
-            stringstream to_emit;
-            int temp_reg_pointer = fresh_var();
-            to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
-            to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+        if (else_statment != nullptr)
+        { //TODO: DELETE
+            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label " << else_block_label;
             EMIT(to_emit.str());
-            to_emit.flush();
+        }
+        else
+        { //TODO: DELETE
+            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label @";
+            branch_pointer = EMIT(to_emit.str());
+        }
 
-            if(is_initilized){
-                to_emit << "store i32 " << make_var(register_number);
-            }
-            else{
-                 to_emit << "store i32 " << 0;
-            }
-            to_emit << ", " << make_var(temp_reg_pointer);
-            EMIT(to_emit.str());
-
-
+        vector<pair<int, BranchLabelIndex>> next_lists = {};
+        next_lists = MERGE(next_lists, if_statment->next_list);
+        if (else_statment != nullptr)
+        {
+            next_lists = MERGE(else_statment->next_list, next_lists);
+        }
+        else
+        {
+            next_lists = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}), next_lists);
+        }
+        return next_lists;
     }
-    void allocate_new_stack(int reg_number){
+    void store_at_offset(int pointer, int offset, int register_number, bool is_initilized = true)
+    {
+        stringstream to_emit;
+        int temp_reg_pointer = fresh_var();
+        to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
+        to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        if (is_initilized)
+        {
+            to_emit << "store i32 " << make_var(register_number);
+        }
+        else
+        {
+            to_emit << "store i32 " << 0;
+        }
+        to_emit << ", " << make_var(temp_reg_pointer);
+        EMIT(to_emit.str());
+    }
+    void allocate_new_stack(int reg_number)
+    {
         stringstream to_emit;
         to_emit << make_var(reg_number) << " = aloca [50 x i32]";
         EMIT(to_emit.str());
     }
-    vector<pair<int,BranchLabelIndex>>* create_unconditional_branch(){
-        vector<pair<int,BranchLabelIndex>>* return_value = new vector<pair<int,BranchLabelIndex>>();
-        *return_value =  CodeBuffer::makelist({EMIT("br lable @"),FIRST});
+    vector<pair<int, BranchLabelIndex>> *create_unconditional_branch()
+    {
+        vector<pair<int, BranchLabelIndex>> *return_value = new vector<pair<int, BranchLabelIndex>>();
+        *return_value = CodeBuffer::makelist({EMIT("br label @"), FIRST});
         return return_value;
     }
-    vector<pair<int,BranchLabelIndex>> handle_while_else_statment(string exp_begin_lable,int exp_reg_number,
-                    vector<pair<int,BranchLabelIndex>> after_exp_branch,
-                    Statement* while_code,Statement* else_code = nullptr){
+    vector<pair<int, BranchLabelIndex>> handle_while_else_statment(string exp_begin_label, int exp_reg,
+                                                                   vector<pair<int, BranchLabelIndex>> after_exp_branch,
+                                                                   const string &while_block_label, Statement *while_code,
+                                                                   const string &else_block_label = nullptr, Statement *else_code = nullptr)
+    {
         stringstream to_emit;
         int condition_var = fresh_var();
-        vector<pair<int,BranchLabelIndex>> exits = {};
+        vector<pair<int, BranchLabelIndex>> next_lists = {};
         // first we check if the expression is true or false
-        string checking_the_expression_lable = GEN_LABEL();
-        to_emit << make_var(condition_var) << " = icmp ne i32 0," << make_var(exp_reg_number);
+        string checking_the_expression_label = GEN_LABEL();
+        to_emit << make_var(condition_var) << " = icmp ne i32 0," << make_var(exp_reg);
         EMIT(to_emit.str());
-        to_emit.flush();
-        to_emit << "br i1 " << make_var(condition_var) << ", label " << while_code->starting_line_lable << ",label @";
+        to_emit.str("");
+        to_emit << "br i1 " << make_var(condition_var) << ", label " << while_block_label << ",label @";
         int where_to_brunch = EMIT(to_emit.str());
-        to_emit.flush();
+        to_emit.str("");
         string after_the_while_code = GEN_LABEL();
         // now check if there is an else code
-        if(else_code != nullptr){
-            BPATCH(CodeBuffer::makelist({where_to_brunch,SECOND}),else_code->starting_line_lable);
-            exits = MERGE(exits,else_code->exit);
+        if (else_code != nullptr)
+        {
+            BPATCH(CodeBuffer::makelist({where_to_brunch, SECOND}), else_block_label);
+            next_lists = MERGE(next_lists, else_code->next_list);
         }
-        else{
-            exits = MERGE(exits,CodeBuffer::makelist({where_to_brunch,SECOND}));
+        else
+        {
+            next_lists = MERGE(next_lists, CodeBuffer::makelist({where_to_brunch, SECOND}));
         }
-        BPATCH(while_code->exit,after_the_while_code);
+        BPATCH(while_code->next_list, after_the_while_code);
         // after doing the while code, gets here, and now recalculate the expression and check stuff
-        to_emit << "br lable " << exp_begin_lable;        
+        to_emit << "br label " << exp_begin_label;
         EMIT(to_emit.str());
-        string after_exp_lable = GEN_LABEL();
-        BPATCH(after_exp_branch,after_exp_lable);
+        to_emit.str("");
+        string after_exp_label = GEN_LABEL();
+        BPATCH(after_exp_branch, after_exp_label);
         // computed the exp, now branch to the comparing fase again
-        to_emit.flush();
-        to_emit << "br lable " << checking_the_expression_lable;
+        to_emit << "br label " << checking_the_expression_label;
         EMIT(to_emit.str());
-        return exits;
+        return next_lists;
     }
 
 } // namespace utils_hw5

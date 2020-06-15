@@ -4,6 +4,7 @@ void printByValue(bool val) {
 	else {
 		print("val is false");
 	}
+ return;
 }
 
 void main() {
