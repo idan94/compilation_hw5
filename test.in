@@ -1,23 +1,14 @@
-void printByValue(bool val) {
-	if (val)
-		print("val is true");
-	else {
-		print("val is false");
-	}
- return;
-}
-
 void main() {
   int a = 15;
   int c = 20;
-  int d = a + c;
+  int d;
+  while (a > 10){
+    c=2;
+  }
+  else{
+    c=1999;
+  }
   
-  int e = c/a;
-  
-  bool boolean;
-  boolean = (a<c);
-  printByValue(boolean);
-	printByValue(true);
-	printByValue(false);
+  return;
       
 }

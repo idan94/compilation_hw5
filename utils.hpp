@@ -25,9 +25,9 @@ namespace utils_hw5
         return reg_count++;
     }
 
-    string make_var(int reg_number)
+    string make_reg(int reg_number)
     {
-        return "%var" + to_string(reg_number);
+        return "%reg" + to_string(reg_number);
     }
 
     string make_id_var(const string &id_number)
@@ -43,23 +43,11 @@ namespace utils_hw5
     void assign_number_to_register(int left_reg_number, int number_to_assign)
     {
         stringstream to_emit;
-        to_emit << make_var(left_reg_number) << " = "
+        to_emit << make_reg(left_reg_number) << " = "
                 << "add i32 0, " << number_to_assign;
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
     }
-    // void append_statements(Statement &first, Statement &second)
-    // {
-    //     BPATCH(first.next_list, second.starting_line_label);
-    //     first.next_list = second.next_list;
-    // }
-
-    // void register_assign_with_op(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
-    // {
-    //     stringstream to_emit;
-    //     to_emit << make_var(left_reg_number) << " = " << op " i32 " << make_var(reg_number_a) << ", " << make_var(reg_number_b);
-    //     EMIT(to_emit.str());
-    // }
 
     void binop_int(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
     {
@@ -77,7 +65,7 @@ namespace utils_hw5
         {
             op_command = "mul";
         }
-        to_emit << make_var(left_reg_number) << " = " << op_command << " i32 " << make_var(reg_number_a) << ", " << make_var(reg_number_b);
+        to_emit << make_reg(left_reg_number) << " = " << op_command << " i32 " << make_reg(reg_number_a) << ", " << make_reg(reg_number_b);
         EMIT(to_emit.str());
     }
 
@@ -86,7 +74,7 @@ namespace utils_hw5
         int temp_register = fresh_var();
         binop_int(temp_register, reg_number_a, op, reg_number_b);
         stringstream to_emit;
-        to_emit << make_var(left_reg_number) << " = and i32 255, " << make_var(temp_register);
+        to_emit << make_reg(left_reg_number) << " = and i32 255, " << make_reg(temp_register);
         EMIT(to_emit.str());
     }
     void binop_div(int left_reg_number, int numerator_reg, int denominator_reg)
@@ -94,11 +82,11 @@ namespace utils_hw5
         stringstream to_emit;
         // Check if the denominator equals zero(error):
         int cond_temp_register = fresh_var();
-        to_emit << make_var(cond_temp_register) << " = icmp eq i32 0, " << make_var(denominator_reg);
+        to_emit << make_reg(cond_temp_register) << " = icmp eq i32 0, " << make_reg(denominator_reg);
         EMIT(to_emit.str());
         to_emit.str("");
 
-        to_emit << "br i1 " + make_var(cond_temp_register) + ", label @, label @";
+        to_emit << "br i1 " + make_reg(cond_temp_register) + ", label @, label @";
         int branch_pointer = EMIT(to_emit.str());
         to_emit.str("");
 
@@ -114,7 +102,7 @@ namespace utils_hw5
 
         // Denominator is not zero, so perform division:
         string divide_label = GEN_LABEL();
-        to_emit << make_var(left_reg_number) << " = sdiv i32 " << make_var(numerator_reg) << ", " << make_var(denominator_reg);
+        to_emit << make_reg(left_reg_number) << " = sdiv i32 " << make_reg(numerator_reg) << ", " << make_reg(denominator_reg);
         EMIT(to_emit.str());
         BPATCH(CodeBuffer::makelist({branch_pointer, FIRST}), div_by_zero_label);
         BPATCH(CodeBuffer::makelist({branch_pointer, SECOND}), divide_label);
@@ -151,11 +139,11 @@ namespace utils_hw5
         {
             op_command = "sle";
         }
-        to_emit << make_var(temp_register) << " = icmp " << op_command << " i32 " << make_var(reg_number_a) << ", " << make_var(reg_number_b);
+        to_emit << make_reg(temp_register) << " = icmp " << op_command << " i32 " << make_reg(reg_number_a) << ", " << make_reg(reg_number_b);
         EMIT(to_emit.str());
 
         to_emit.str("");
-        to_emit << make_string_var(left_reg_number) << " = zext i1" << make_var(temp_register) << "to i32";
+        to_emit << make_reg(left_reg_number) << " = zext i1 " << make_reg(temp_register) << " to i32";
         EMIT(to_emit.str());
     }
     void add_string_constant(const string &str, int reg_number)
@@ -176,7 +164,7 @@ namespace utils_hw5
     void assign_id(const string &id_reg, int right_reg)
     {
         stringstream to_emit;
-        to_emit << "store i32 " << make_var(right_reg) << ", i32 " << make_id_var(id_reg);
+        to_emit << "store i32 " << make_reg(right_reg) << ", i32 " << make_id_var(id_reg);
         EMIT(to_emit.str());
     }
     void load_id_to_reg(const string &id_reg, int reg_number)
@@ -184,7 +172,7 @@ namespace utils_hw5
         stringstream to_emit;
         //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the
         // aloca function
-        to_emit << make_var(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
+        to_emit << make_reg(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
         EMIT(to_emit.str());
     }
     void start_llvm_code()
@@ -211,8 +199,8 @@ namespace utils_hw5
     void flip_bool_value(int output_reg, int input_reg)
     {
         stringstream to_emit;
-        to_emit << make_var(output_reg) << " = "
-                << "sub i32 1," << make_var(input_reg);
+        to_emit << make_reg(output_reg) << " = "
+                << "sub i32 1," << make_reg(input_reg);
         EMIT(to_emit.str());
     }
     void bit_by_bit_operand(int output_reg, int input_reg_a, int input_reg_b, string op)
@@ -227,67 +215,90 @@ namespace utils_hw5
             op_code = " and i32";
         }
         stringstream to_emit;
-        to_emit << make_var(output_reg) << " = " << op_code << make_var(input_reg_a) << ", " << make_var(input_reg_b);
+        to_emit << make_reg(output_reg) << " = " << op_code << make_reg(input_reg_a) << ", " << make_reg(input_reg_b);
         EMIT(to_emit.str());
     }
-    vector<pair<int, BranchLabelIndex>> handle_if_statsment(int exp_reg, const string &if_block_label, Statement *if_statment,
-                                                            const string &else_block_label = nullptr, Statement *else_statment = nullptr)
+    vector<pair<int, BranchLabelIndex>> *branch_to_next_list()
+    {
+        return new vector<pair<int, BranchLabelIndex>>(CodeBuffer::makelist({EMIT("br label @"), FIRST}));
+    }
+    //returns the pointer to the if condition branch pointer
+    int gen_if_branch(int exp_reg_number)
     {
         stringstream to_emit;
-        int temp_reg = fresh_var();
-        int branch_pointer;
-        to_emit << make_var(temp_reg) << " = "
-                << "cmpi neq i32 0, " << make_var(exp_reg);
+        int temp_i1_bool = fresh_var();
+        to_emit << make_reg(temp_i1_bool) << " = trunc i32 " << make_reg(exp_reg_number) << " to i1";
         EMIT(to_emit.str());
         to_emit.str("");
 
-        if (else_statment != nullptr)
-        { //TODO: DELETE
-            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label " << else_block_label;
-            EMIT(to_emit.str());
-        }
-        else
-        { //TODO: DELETE
-            to_emit << "br i1 " << make_var(temp_reg) << ", label " << if_block_label << ", label @";
-            branch_pointer = EMIT(to_emit.str());
-        }
-
-        vector<pair<int, BranchLabelIndex>> next_lists = {};
-        next_lists = MERGE(next_lists, if_statment->next_list);
-        if (else_statment != nullptr)
-        {
-            next_lists = MERGE(else_statment->next_list, next_lists);
-        }
-        else
-        {
-            next_lists = MERGE(CodeBuffer::makelist({branch_pointer, SECOND}), next_lists);
-        }
-        return next_lists;
+        to_emit << "br i1 " << make_reg(temp_i1_bool) << ", label @, label @";
+        return EMIT(to_emit.str());
     }
-    void store_at_offset(int pointer, int offset, int register_number, bool is_initilized = true)
+    void if_statement(int condition_branch_pointer, const string &if_block_label,
+                      vector<pair<int, BranchLabelIndex>> next_list)
+    {
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), if_block_label);
+        next_list = CodeBuffer::merge(CodeBuffer::makelist({condition_branch_pointer, SECOND}), next_list);
+        string new_block_label = GEN_LABEL();
+        BPATCH(next_list, new_block_label);
+    }
+    void if_else_statement(int condition_branch_pointer, const string &if_block_label,
+                           const string &else_block_label, vector<pair<int, BranchLabelIndex>> next_list)
+    {
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), if_block_label);
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, SECOND}), else_block_label);
+        string new_block_label = GEN_LABEL();
+        BPATCH(next_list, new_block_label);
+    }
+    void while_statement(const string &condition_pointer, int condition_branch_pointer, const string &while_block_label,
+                         vector<pair<int, BranchLabelIndex>> loop_branch)
+    {
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), while_block_label);
+        BPATCH(loop_branch, condition_pointer);
+        auto next_list = CodeBuffer::makelist({condition_branch_pointer, SECOND});
+        string new_block_label = GEN_LABEL();
+        BPATCH(next_list, new_block_label);
+    }
+    void while_else_statement(const string &condition_pointer, int condition_branch_pointer, const string &while_block_label,
+                              const string &else_block_label, vector<pair<int, BranchLabelIndex>> loop_branch, vector<pair<int, BranchLabelIndex>> next_list)
+    {
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), while_block_label);
+        BPATCH(CodeBuffer::makelist({condition_branch_pointer, SECOND}), else_block_label);
+        BPATCH(loop_branch, condition_pointer);
+        string new_block_label = GEN_LABEL();
+        BPATCH(next_list, new_block_label);
+    }
+    void store_at_offset(int func_stack_pointer, int offset, const string &id_name, int register_number, bool is_initilized = true)
     {
         stringstream to_emit;
-        int temp_reg_pointer = fresh_var();
-        to_emit << make_var(temp_reg_pointer) << " = getelementptr [50 x i32], [50 x i32]* ";
-        to_emit << make_var(pointer) << ", i32 0, i32 " << offset;
+        to_emit << make_id_var(id_name) << " = getelementptr [50 x i32], [50 x i32]* ";
+        to_emit << make_reg(func_stack_pointer) << ", i32 0, i32 " << offset;
         EMIT(to_emit.str());
         to_emit.str("");
 
         if (is_initilized)
         {
-            to_emit << "store i32 " << make_var(register_number);
+            to_emit << "store i32 " << make_reg(register_number);
         }
         else
         {
             to_emit << "store i32 " << 0;
         }
-        to_emit << ", " << make_var(temp_reg_pointer);
+        to_emit << ", " << make_id_var(id_name);
         EMIT(to_emit.str());
     }
+
+    void assign_to_id(const string &id_name, int register_number)
+    {
+        stringstream to_emit;
+        to_emit << "store i32 " << make_reg(register_number) << ", " << make_id_var(id_name);
+        EMIT(to_emit.str());
+    }
+
     void allocate_new_stack(int reg_number)
     {
         stringstream to_emit;
-        to_emit << make_var(reg_number) << " = aloca [50 x i32]";
+        to_emit << make_reg(reg_number) << " = aloca [50 x i32]";
         EMIT(to_emit.str());
     }
     vector<pair<int, BranchLabelIndex>> *create_unconditional_branch()
@@ -295,45 +306,6 @@ namespace utils_hw5
         vector<pair<int, BranchLabelIndex>> *return_value = new vector<pair<int, BranchLabelIndex>>();
         *return_value = CodeBuffer::makelist({EMIT("br label @"), FIRST});
         return return_value;
-    }
-    vector<pair<int, BranchLabelIndex>> handle_while_else_statment(string exp_begin_label, int exp_reg,
-                                                                   vector<pair<int, BranchLabelIndex>> after_exp_branch,
-                                                                   const string &while_block_label, Statement *while_code,
-                                                                   const string &else_block_label = nullptr, Statement *else_code = nullptr)
-    {
-        stringstream to_emit;
-        int condition_var = fresh_var();
-        vector<pair<int, BranchLabelIndex>> next_lists = {};
-        // first we check if the expression is true or false
-        string checking_the_expression_label = GEN_LABEL();
-        to_emit << make_var(condition_var) << " = icmp ne i32 0," << make_var(exp_reg);
-        EMIT(to_emit.str());
-        to_emit.str("");
-        to_emit << "br i1 " << make_var(condition_var) << ", label " << while_block_label << ",label @";
-        int where_to_brunch = EMIT(to_emit.str());
-        to_emit.str("");
-        string after_the_while_code = GEN_LABEL();
-        // now check if there is an else code
-        if (else_code != nullptr)
-        {
-            BPATCH(CodeBuffer::makelist({where_to_brunch, SECOND}), else_block_label);
-            next_lists = MERGE(next_lists, else_code->next_list);
-        }
-        else
-        {
-            next_lists = MERGE(next_lists, CodeBuffer::makelist({where_to_brunch, SECOND}));
-        }
-        BPATCH(while_code->next_list, after_the_while_code);
-        // after doing the while code, gets here, and now recalculate the expression and check stuff
-        to_emit << "br label " << exp_begin_label;
-        EMIT(to_emit.str());
-        to_emit.str("");
-        string after_exp_label = GEN_LABEL();
-        BPATCH(after_exp_branch, after_exp_label);
-        // computed the exp, now branch to the comparing fase again
-        to_emit << "br label " << checking_the_expression_label;
-        EMIT(to_emit.str());
-        return next_lists;
     }
 
     void return_statement(int return_exp_register = (-2))
@@ -345,7 +317,7 @@ namespace utils_hw5
         }
         else
         {
-            to_emit << "ret " << make_var(return_exp_register);
+            to_emit << "ret " << make_reg(return_exp_register);
         }
         EMIT(to_emit.str());
     }

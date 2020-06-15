@@ -30,11 +30,6 @@ struct Expression{
    Expression() : id_name{""}, type{""}, bool_value{false}, number{0}, str{""}, op{""}, register_number{-1} {}
 };
 
-struct Statement{
-   vector<pair<int,BranchLabelIndex>> next_list;
-   Statement() : next_list{vector<pair<int,BranchLabelIndex>>{}} {}
-};
-
 typedef struct Formal Formal;
 typedef struct Expression Expression;
 typedef struct Statement Statement;

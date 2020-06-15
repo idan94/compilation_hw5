@@ -78,9 +78,10 @@
    string* return_type;
    vector<pair<int,BranchLabelIndex>>* branch_location;
    Expression* expression;
-   Statement* statment;
+   /* Statement* statment; */
    Formal* formal;
    string* label;
+   int label_pointer;
 }
 
 %nonassoc VOID    
@@ -122,12 +123,13 @@
 %type <return_type> Call
 %type <expression> ExpList
 %type <type> Type
-%type <statment> Statement
-%type <statment> Statements
+/* %type <statment> Statement */
+/* %type <statment> Statements */
 %type <label> Marker5
-%type <branch_location> Exp_marker_end
 %type <label> Marker2;
 %type <label> Marker4;
+%type <branch_location> NMarker2;
+%type <label_pointer> NMarker1;
 
 %%
 
@@ -253,75 +255,54 @@ Marker5:      { /*epsilon*/
                   $$ = new string(CodeBuffer::instance().genLabel());
 }
 ;
-
-Exp_marker_end:      { /*epsilon*/ 
-                  $$ = new vector<pair<int,BranchLabelIndex>>();
-                  $$ = utils_hw5::create_unconditional_branch();
-}
-;
-
 Statements:    Statement        {
-                  $$ = $1;
                 }
                | Statements Statement        {
-                  $$ = $2;
-                  /* utils_hw5::append_statements(*$$,*$2);
-                  delete $2; */
                }
-;
+;     
 Statement:     
                /* Moved here If and While roles. solving 'Dangling Else' */
-               IF LPAREN Exp RPAREN Marker2 Statement Marker3     {
+               IF LPAREN Exp NMarker1 RPAREN Marker2 Statement NMarker2     {
                   check_bool_exp($3->type);
                   //HW5:
-                  $$ = new Statement();
-                  // to do using markers - fix
-                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,*$5,$6);
+                  vector<pair<int,BranchLabelIndex>> next_list = *$8;
+                  utils_hw5::if_statement($4, *$6, next_list);
                   //HW5~
                   delete $3;
-                  delete $6;
                }
-               | IF LPAREN Exp RPAREN Marker2 Statement Marker3 ELSE Marker2 Statement Marker3      {
+               | IF LPAREN Exp NMarker1 RPAREN Marker2 Statement NMarker2 ELSE Marker2 Statement NMarker2      {
                   check_bool_exp($3->type);
                   //HW5:
-                  $$ = new Statement();
-                  // to do using markers - fix
-                  $$->next_list = utils_hw5::handle_if_statsment($3->register_number,*$5,$6,*$9,$10);
+                  vector<pair<int,BranchLabelIndex>> next_list = CodeBuffer::merge(*$8, *$12);
+                  utils_hw5::if_else_statement($4,*$6,*$10, next_list);
                   //HW5~
                   delete $3;
-                  delete $6;
-                  delete $10;
                }
-
-               | WHILE LPAREN Marker5 Exp Exp_marker_end RPAREN Marker4 Statement Marker3    {
+               | WHILE LPAREN Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2    {
                   check_bool_exp($4->type);
                   //HW5:
-                  $$ = new Statement();
-                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,*$7,$8);
+                  vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
+                  utils_hw5::while_statement(*$3, $5, *$7, loop_branch);                  
                   //HW5~
                   delete $4;
                }
-               | WHILE LPAREN Marker5 Exp Exp_marker_end RPAREN Marker4 Statement Marker3 ELSE Marker2 Statement Marker3      {
+               | WHILE LPAREN Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2 ELSE Marker2 Statement NMarker2      {
                   check_bool_exp($4->type);
                   //HW5:
-                  $$ = new Statement();
-                  utils_hw5::handle_while_else_statment(*$3,$4->register_number,*$5,*$7,$8,*$11,$12);
+                  vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
+                  vector<pair<int,BranchLabelIndex>> next_list = *$13;
+                  utils_hw5::while_else_statement(*$3, $5, *$7,*$11,loop_branch, next_list); 
                   //HW5~
                   delete $4;
                }
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
-               | LBRACE Marker2 Statements Marker3 RBRACE  {
-                  //HW5:
-                  $$ = new Statement();
-                  $$ = $3;
-                  //HW5~
+               | LBRACE Marker7 Statements Marker3 RBRACE  {
                }
                | Type ID SC         {
                   insert(*$2,*$1, top_offsets(), false);
                   //HW5:
-                  $$ = new Statement();
                   int offset = get_id_offset(*$2,*tables);
-                  utils_hw5::store_at_offset(current_stack_register->top(),offset,-1,false);
+                  utils_hw5::store_at_offset(current_stack_register->top(),offset,*$2,-1,false);
 
                   //HW5~
                   top_offsets() += 1;
@@ -341,9 +322,8 @@ Statement:
                      exit(0); 
                   }
                   //HW5:
-                  $$ = new Statement();
                   int offset = get_id_offset(*$2,*tables);
-                  utils_hw5::store_at_offset(current_stack_register->top(),offset,$4->register_number);
+                  utils_hw5::store_at_offset(current_stack_register->top(),offset,*$2,$4->register_number);
                   //HW5~
 
                   delete $1;
@@ -367,16 +347,14 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   int offset = get_id_offset(*$1,*tables);
-                  utils_hw5::store_at_offset(current_stack_register->top(),offset,$3->register_number);
+                  utils_hw5::assign_to_id(*$1,$3->register_number);
                   //HW5~
                   delete $1;
                   delete $3;
                }
                | Call SC         {
                   //HW5:
-                  $$ = new Statement();
                   //HW5~
                   delete $1;
                }
@@ -386,7 +364,6 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   utils_hw5::return_statement();
                   //HW5~
                }
@@ -399,7 +376,6 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   utils_hw5::return_statement($2->register_number);
                   //HW5~
                   delete $2;
@@ -410,7 +386,6 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   
                   //HW5~
                }
@@ -420,10 +395,12 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  $$ = new Statement();
                   //HW5~
                }
 ;
+NMarker1:      /*epsilon*/        {
+      $$ = utils_hw5::gen_if_branch(($<expression>0)->register_number);
+}
 Marker2:       /*epsilon*/        {
       // this marker pushes a scope of type regular
       push_tables();
@@ -438,12 +415,26 @@ Marker2:       /*epsilon*/        {
       push_top_scope();
       $$ = new string(CodeBuffer::instance().genLabel());
 }
+Marker7:       /*epsilon*/        {
+      // this marker pushes a scope of type regular
+      push_tables();
+      push_offsets(top_offsets());
+      push_top_scope();
+}
 Marker3:       /*epsilon*/        {
       output::endScope();
       print_map_by_order(tables->back(),insertion_orders->back());
       pop_tables();
       pop_offsets();
       pop_scope();
+}
+NMarker2:       /*epsilon*/        {
+      output::endScope();
+      print_map_by_order(tables->back(),insertion_orders->back());
+      pop_tables();
+      pop_offsets();
+      pop_scope();
+      $$ = utils_hw5::branch_to_next_list();
 }
 Marker4:       /*epsilon*/        {
       //this marker pushed a scope of type while
