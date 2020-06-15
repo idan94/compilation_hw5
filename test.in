@@ -4,11 +4,10 @@ void main() {
   int d;
   while (a > 10){
     c=2;
+    break;
+    a=2;
   }
-  else{
-    c=1999;
-  }
-  
+ 
   return;
       
 }

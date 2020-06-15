@@ -26,9 +26,10 @@
    const string TYPE_STRING = "STRING";
    const string TYPE_VOID = "VOID";
    vector<map<string,pair<string, int>>>* tables;
-   stack<string>* scope_type;
+   vector<Scope>* scopes;
    vector<queue<string>>* insertion_orders;
    stack<int>* offsets;
+   stack<vector<pair<int, BranchLabelIndex>>>* break_next_lists;
    map<string,pair<string, int>>* t;
    stack<int>* current_stack_register;
 
@@ -55,7 +56,6 @@
    void push_regular_scope();
    void pop_scope();
    void push_while_scope();
-   void push_top_scope();
    bool check_while_scope();
    void assign_type_check(string var,string exp);
    string get_id_type(const string name, const vector<map<string, pair<string, int>>> &tables);
@@ -282,7 +282,12 @@ Statement:
                   check_bool_exp($4->type);
                   //HW5:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
-                  utils_hw5::while_statement(*$3, $5, *$7, loop_branch);                  
+                  vector<pair<int,BranchLabelIndex>> next_list;
+                  if(!break_next_lists->empty()){
+                  next_list = break_next_lists->top();
+                  break_next_lists->pop();
+                  }
+                  utils_hw5::while_statement(*$3, $5, *$7, loop_branch, next_list);                  
                   //HW5~
                   delete $4;
                }
@@ -291,6 +296,10 @@ Statement:
                   //HW5:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
                   vector<pair<int,BranchLabelIndex>> next_list = *$13;
+                  if(!break_next_lists->empty()){
+                  next_list = CodeBuffer::merge(break_next_lists->top(),next_list);
+                  break_next_lists->pop();
+                  }
                   utils_hw5::while_else_statement(*$3, $5, *$7,*$11,loop_branch, next_list); 
                   //HW5~
                   delete $4;
@@ -386,7 +395,9 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  
+                  int break_pointer = utils_hw5::break_statement();
+                  auto next_list = CodeBuffer::makelist({break_pointer,FIRST});
+                  break_next_lists->push(next_list);
                   //HW5~
                }
                | CONTINUE SC        {
@@ -405,21 +416,14 @@ Marker2:       /*epsilon*/        {
       // this marker pushes a scope of type regular
       push_tables();
       push_offsets(top_offsets());
-      // the reason we use push top scope, is if we are in a while scope, and we open a new scope
-      // we can still use break
-      // TODO: check this
-      // IMPORTANT!!! this mechanizem makes sure that the while break will work at all !
-      // because the while opens a new scope and inside it, the statment opens another scope
-      // and because the while pushes a while_scope to the scope stack
-      // this marker keeps the break leagal inside the while
-      push_top_scope();
+      push_regular_scope();
       $$ = new string(CodeBuffer::instance().genLabel());
 }
 Marker7:       /*epsilon*/        {
       // this marker pushes a scope of type regular
       push_tables();
       push_offsets(top_offsets());
-      push_top_scope();
+      push_regular_scope();
 }
 Marker3:       /*epsilon*/        {
       output::endScope();
@@ -859,26 +863,25 @@ void yyerror(const char*){
 }
 
 void push_regular_scope(){
-   scope_type->push(REGULAR_SCOPE);
-}
-void pop_scope(){
-   scope_type->pop();
-}
-void push_while_scope(){
-   scope_type->push(WHILE_SCOPE);
+   auto new_scope = Scope(WHILE_SCOPE);
+   scopes->push_back(new_scope);
 }
 
-void push_top_scope(){
-   scope_type->push(scope_type->top());
+void pop_scope(){
+   scopes->pop_back();
+}
+void push_while_scope(){
+   auto new_scope = Scope(WHILE_SCOPE);
+   scopes->push_back(new_scope);
 }
 
 bool check_while_scope(){
-   // current_scope_type.comapre(REGULAR_SCOPE) will be 0 (false) if we are in a regular scope
-   // meaning not in a while scope, and so breack is ileagal
-   if(scope_type->top().compare(WHILE_SCOPE)){
-   return false;
+   for(Scope it : (*scopes)){
+      if(it.get_scope_type() == WHILE_SCOPE){
+         return true;
+      }
    }
-   return true;
+   return false;
 }
 
 
@@ -976,12 +979,14 @@ int main(){
    tables = new vector<map<string,pair<string, int>>>();
    offsets = new stack<int>();
    insertion_orders = new vector<queue<string>> ();
-   scope_type = new stack<string>();
+   scopes = new vector<Scope>();
    current_stack_register = new stack<int>();
+   break_next_lists = new stack<vector<pair<int, BranchLabelIndex>>>();
    auto return_parse = yyparse();
    delete tables;
    delete offsets;
    delete insertion_orders;
-   delete scope_type;
+   delete scopes;
+   delete break_next_lists;
    return return_parse;
 }

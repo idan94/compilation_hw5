@@ -48,7 +48,10 @@ namespace utils_hw5
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
     }
-
+    int break_statement()
+    {
+        return EMIT("br label @");
+    }
     void binop_int(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
     {
         stringstream to_emit;
@@ -238,7 +241,7 @@ namespace utils_hw5
                       vector<pair<int, BranchLabelIndex>> next_list)
     {
         BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), if_block_label);
-        next_list = CodeBuffer::merge(CodeBuffer::makelist({condition_branch_pointer, SECOND}), next_list);
+        next_list = MERGE(CodeBuffer::makelist({condition_branch_pointer, SECOND}), next_list);
         string new_block_label = GEN_LABEL();
         BPATCH(next_list, new_block_label);
     }
@@ -251,11 +254,11 @@ namespace utils_hw5
         BPATCH(next_list, new_block_label);
     }
     void while_statement(const string &condition_pointer, int condition_branch_pointer, const string &while_block_label,
-                         vector<pair<int, BranchLabelIndex>> loop_branch)
+                         vector<pair<int, BranchLabelIndex>> loop_branch, vector<pair<int, BranchLabelIndex>> next_list)
     {
         BPATCH(CodeBuffer::makelist({condition_branch_pointer, FIRST}), while_block_label);
         BPATCH(loop_branch, condition_pointer);
-        auto next_list = CodeBuffer::makelist({condition_branch_pointer, SECOND});
+        next_list = MERGE(CodeBuffer::makelist({condition_branch_pointer, SECOND}), next_list);
         string new_block_label = GEN_LABEL();
         BPATCH(next_list, new_block_label);
     }
