@@ -336,6 +336,20 @@ namespace utils_hw5
         return next_lists;
     }
 
+    void return_statement(int return_exp_register = (-2))
+    {
+        stringstream to_emit;
+        if (return_exp_register == (-2))
+        {
+            to_emit << "ret void";
+        }
+        else
+        {
+            to_emit << "ret " << make_var(return_exp_register);
+        }
+        EMIT(to_emit.str());
+    }
+
 } // namespace utils_hw5
 
 #endif

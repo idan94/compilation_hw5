@@ -387,6 +387,7 @@ Statement:
                   }
                   //HW5:
                   $$ = new Statement();
+                  utils_hw5::return_statement();
                   //HW5~
                }
                | RETURN Exp SC         {
@@ -399,6 +400,7 @@ Statement:
                   }
                   //HW5:
                   $$ = new Statement();
+                  utils_hw5::return_statement($2->register_number);
                   //HW5~
                   delete $2;
                }
@@ -409,6 +411,7 @@ Statement:
                   }
                   //HW5:
                   $$ = new Statement();
+                  
                   //HW5~
                }
                | CONTINUE SC        {
