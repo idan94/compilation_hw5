@@ -30,6 +30,7 @@
    vector<queue<string>>* insertion_orders;
    stack<int>* offsets;
    stack<vector<pair<int, BranchLabelIndex>>>* break_next_lists;
+   stack<vector<pair<int, BranchLabelIndex>>>* continue_next_lists;
    map<string,pair<string, int>>* t;
    stack<int>* current_stack_register;
 
@@ -252,7 +253,7 @@ FormalsDecl:   Type ID        {
 ;
 
 Marker5:      { /*epsilon*/ 
-                  $$ = new string(CodeBuffer::instance().genLabel());
+                  $$ = new string(GEN_LABEL());
 }
 ;
 Statements:    Statement        {
@@ -273,7 +274,7 @@ Statement:
                | IF LPAREN Exp NMarker1 RPAREN Marker2 Statement NMarker2 ELSE Marker2 Statement NMarker2      {
                   check_bool_exp($3->type);
                   //HW5:
-                  vector<pair<int,BranchLabelIndex>> next_list = CodeBuffer::merge(*$8, *$12);
+                  vector<pair<int,BranchLabelIndex>> next_list = MERGE(*$8, *$12);
                   utils_hw5::if_else_statement($4,*$6,*$10, next_list);
                   //HW5~
                   delete $3;
@@ -284,8 +285,12 @@ Statement:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
                   vector<pair<int,BranchLabelIndex>> next_list;
                   if(!break_next_lists->empty()){
-                  next_list = break_next_lists->top();
-                  break_next_lists->pop();
+                     next_list = break_next_lists->top();
+                     break_next_lists->pop();
+                  }
+                  if(!continue_next_lists->empty()){
+                     loop_branch = MERGE(continue_next_lists->top(),loop_branch);
+                     continue_next_lists->pop();
                   }
                   utils_hw5::while_statement(*$3, $5, *$7, loop_branch, next_list);                  
                   //HW5~
@@ -297,8 +302,12 @@ Statement:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
                   vector<pair<int,BranchLabelIndex>> next_list = *$13;
                   if(!break_next_lists->empty()){
-                  next_list = CodeBuffer::merge(break_next_lists->top(),next_list);
-                  break_next_lists->pop();
+                     next_list = MERGE(break_next_lists->top(),next_list);
+                     break_next_lists->pop();
+                  }
+                  if(!continue_next_lists->empty()){
+                     loop_branch = MERGE(continue_next_lists->top(),loop_branch);
+                     continue_next_lists->pop();
                   }
                   utils_hw5::while_else_statement(*$3, $5, *$7,*$11,loop_branch, next_list); 
                   //HW5~
@@ -395,8 +404,7 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  int break_pointer = utils_hw5::break_statement();
-                  auto next_list = CodeBuffer::makelist({break_pointer,FIRST});
+                  auto next_list = utils_hw5::create_unconditional_branch("break");
                   break_next_lists->push(next_list);
                   //HW5~
                }
@@ -405,6 +413,8 @@ Statement:
                      output::errorUnexpectedContinue(yylineno);
                      exit(0);
                   }
+                  auto next_list = utils_hw5::create_unconditional_branch("continue");
+                  continue_next_lists->push(next_list);
                   //HW5:
                   //HW5~
                }
@@ -417,7 +427,7 @@ Marker2:       /*epsilon*/        {
       push_tables();
       push_offsets(top_offsets());
       push_regular_scope();
-      $$ = new string(CodeBuffer::instance().genLabel());
+      $$ = new string(GEN_LABEL());
 }
 Marker7:       /*epsilon*/        {
       // this marker pushes a scope of type regular
@@ -445,7 +455,7 @@ Marker4:       /*epsilon*/        {
       push_tables();
       push_offsets(top_offsets());
       push_while_scope();
-      $$ = new string(CodeBuffer::instance().genLabel());
+      $$ = new string(GEN_LABEL());
 }
 ;
 Call:          ID LPAREN ExpList RPAREN         {
@@ -982,11 +992,13 @@ int main(){
    scopes = new vector<Scope>();
    current_stack_register = new stack<int>();
    break_next_lists = new stack<vector<pair<int, BranchLabelIndex>>>();
+   continue_next_lists = new stack<vector<pair<int, BranchLabelIndex>>>();
    auto return_parse = yyparse();
    delete tables;
    delete offsets;
    delete insertion_orders;
    delete scopes;
    delete break_next_lists;
+   delete continue_next_lists;
    return return_parse;
 }

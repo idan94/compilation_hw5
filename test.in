@@ -6,6 +6,8 @@ void main() {
     c=2;
     break;
     a=2;
+    continue;
+    c=5;
   }
  
   return;

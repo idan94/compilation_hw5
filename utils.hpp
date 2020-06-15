@@ -7,11 +7,6 @@
 #include "bp.hpp"
 #include "structs.hpp"
 
-#define EMIT(to_emit) CodeBuffer::instance().emit(to_emit)
-#define EMIT_GLOBAL(to_emit) CodeBuffer::instance().emitGlobal(to_emit)
-#define GEN_LABEL() CodeBuffer::instance().genLabel()
-#define BPATCH(address_list, label) CodeBuffer::instance().bpatch(address_list, label)
-#define MERGE(list_1, list_2) CodeBuffer::merge(list_1, list_2)
 
 using namespace std;
 
@@ -47,10 +42,6 @@ namespace utils_hw5
                 << "add i32 0, " << number_to_assign;
         EMIT(to_emit.str());
         // %var5 = add i32 0, number_to_assign
-    }
-    int break_statement()
-    {
-        return EMIT("br label @");
     }
     void binop_int(int left_reg_number, int reg_number_a, const string &op, int reg_number_b)
     {
@@ -304,11 +295,9 @@ namespace utils_hw5
         to_emit << make_reg(reg_number) << " = aloca [50 x i32]";
         EMIT(to_emit.str());
     }
-    vector<pair<int, BranchLabelIndex>> *create_unconditional_branch()
+    vector<pair<int, BranchLabelIndex>> create_unconditional_branch(const string& comment)
     {
-        vector<pair<int, BranchLabelIndex>> *return_value = new vector<pair<int, BranchLabelIndex>>();
-        *return_value = CodeBuffer::makelist({EMIT("br label @"), FIRST});
-        return return_value;
+        return CodeBuffer::makelist({EMIT("br label @ //" + comment), FIRST});
     }
 
     void return_statement(int return_exp_register = (-2))

@@ -7,6 +7,12 @@
 
 using namespace std;
 
+#define EMIT(to_emit) CodeBuffer::instance().emit(to_emit)
+#define EMIT_GLOBAL(to_emit) CodeBuffer::instance().emitGlobal(to_emit)
+#define GEN_LABEL() CodeBuffer::instance().genLabel()
+#define BPATCH(address_list, label) CodeBuffer::instance().bpatch(address_list, label)
+#define MERGE(list_1, list_2) CodeBuffer::merge(list_1, list_2)
+
 struct Formal
 {
    string id_name;
