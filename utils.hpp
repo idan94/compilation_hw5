@@ -81,13 +81,8 @@ namespace utils_hw5
 
         to_emit << "br i1 " + make_reg(cond_temp_register) + ", label @, label @";
         int branch_pointer = EMIT(to_emit.str());
-        to_emit.str("");
-
-        to_emit << "@.div_zero_error = constant [23 x i8] c\"Error division by zero\\00\"";
-        EMIT_GLOBAL(to_emit.str());
-        to_emit.str("");
-
-        // Denominator equals zero, so ummmm error ? :
+        to_emit.str("");        
+        // Denominator equals zero, error ? :
         string div_by_zero_label = GEN_LABEL();
         EMIT("call void @print(i8* getelementptr ([23 x i8], [23 x i8]* @.div_zero_error, i32 0, i32 0))");
         EMIT("call void @exit(i32 1)");
@@ -148,11 +143,11 @@ namespace utils_hw5
 
     void print_buffers()
     {
-        cout << "\n~~~~~~~~~~~PRINTING BUFFERS!~~~~~~~~~~~~" << endl;
-        cout << "\n~~~Global Buffer:~~~" << endl;
+        cout << endl;
         CodeBuffer::instance().printGlobalBuffer();
-        cout << "\n~~~Code Buffer:~~~" << endl;
+        cout << endl;
         CodeBuffer::instance().printCodeBuffer();
+        cout << endl;
     }
     void assign_id(const string &id_reg, int right_reg)
     {
@@ -171,11 +166,13 @@ namespace utils_hw5
     void start_llvm_code()
     {
         EMIT("declare i32 @printf(i8*, ...)");
-        EMIT("declarevoid @exit(i32)");
+        EMIT("declare void @exit(i32)");
+        EMIT_GLOBAL("@.div_zero_error = constant [23 x i8] c\"Error division by zero\\00\"");
     }
 
     void add_print_function()
     {
+        EMIT_GLOBAL("@.int_specifier = constant [4 x i8] c\"%d\\0A\\00\"");
         EMIT("define void @printi(i32) {");
         EMIT("    call i32 (i8*, ...) @printf(i8* getelementptr([4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0), i32 %0)");
         EMIT("    ret void");
@@ -184,6 +181,7 @@ namespace utils_hw5
 
     void add_printi_function()
     {
+        EMIT_GLOBAL("@.str_specifier = constant [4 x i8] c\"%s\\0A\\00\"");
         EMIT("define void @print(i8*) {");
         EMIT("    call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)");
         EMIT("    ret void");
@@ -224,7 +222,7 @@ namespace utils_hw5
         {
             return_type_code = "i32";
         }
-        to_emit << "// " << func_name << " function decleration:";
+        to_emit << "; " << func_name << " function decleration:";
         EMIT("");
         EMIT(to_emit.str());
         to_emit.str("");
@@ -252,7 +250,7 @@ namespace utils_hw5
             to_emit.str("");
         }
         current_stack_register->push(fresh_var());
-            to_emit << make_reg(current_stack_register->top()) << " = alloca i32, i32 50";
+            to_emit << make_reg(current_stack_register->top()) << " = alloca [50 x i32]";
             EMIT(to_emit.str());
             to_emit.str("");
     }
@@ -284,6 +282,10 @@ namespace utils_hw5
 
         to_emit << "br i1 " << make_reg(temp_i1_bool) << ", label @, label @";
         return EMIT(to_emit.str());
+    }
+    int gen_branch()
+    {
+        return EMIT("br label @");
     }
     void if_statement(int condition_branch_pointer, const string &if_block_label,
                       vector<pair<int, BranchLabelIndex>> next_list)
@@ -335,14 +337,14 @@ namespace utils_hw5
         {
             to_emit << "store i32 " << 0;
         }
-        to_emit << ", " << make_id_var(id_name);
+        to_emit << ", i32* " << make_id_var(id_name);
         EMIT(to_emit.str());
     }
 
     void assign_to_id(const string &id_name, int register_number)
     {
         stringstream to_emit;
-        to_emit << "store i32 " << make_reg(register_number) << ", " << make_id_var(id_name);
+        to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_id_var(id_name);
         EMIT(to_emit.str());
     }
 
@@ -354,7 +356,7 @@ namespace utils_hw5
     // }
     vector<pair<int, BranchLabelIndex>> create_unconditional_branch(const string &comment)
     {
-        return CodeBuffer::makelist({EMIT("br label @ //" + comment), FIRST});
+        return CodeBuffer::makelist({EMIT("br label @ ;" + comment), FIRST});
     }
 
     void return_statement(int return_exp_register = (-2))
@@ -366,7 +368,7 @@ namespace utils_hw5
         }
         else
         {
-            to_emit << "ret " << make_reg(return_exp_register);
+            to_emit << "ret i32 " << make_reg(return_exp_register);
         }
         EMIT(to_emit.str());
     }

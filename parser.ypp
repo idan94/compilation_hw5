@@ -131,23 +131,24 @@
 %type <label> Marker4;
 %type <branch_location> NMarker2;
 %type <label_pointer> NMarker1;
+%type <label_pointer> NMarker3;
 
 %%
 
 Program:       Marker1 Funcs       {
    if(!name_exists_in_table("main",*tables,true)){
-      output::errorMainMissing();
+      //output::errorMainMissing();
       exit(0);
    }else{
       string fun_sign = get_id_type("main" ,*tables);
       string ret_type = fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1);
       string function_args = fun_sign.substr(0,fun_sign.find("->"));
       if(ret_type.compare(TYPE_VOID) || function_args.compare("()")){
-         output::errorMainMissing();
+         //output::errorMainMissing();
          exit(0);
       }
    }
-   output::endScope();
+   //output::endScope();
    print_map_by_order(tables->back(),insertion_orders->back());
    pop_tables();
    pop_offsets();
@@ -281,10 +282,10 @@ Statement:
                   //HW5~
                   delete $3;
                }
-               | WHILE LPAREN Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2    {
-                  check_bool_exp($4->type);
+               | WHILE LPAREN NMarker3 Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2    {
+                  check_bool_exp($5->type);
                   //HW5:
-                  vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
+                  vector<pair<int,BranchLabelIndex>> loop_branch = *$10;
                   vector<pair<int,BranchLabelIndex>> next_list;
                   if(!break_next_lists->empty()){
                      next_list = break_next_lists->top();
@@ -294,15 +295,16 @@ Statement:
                      loop_branch = MERGE(continue_next_lists->top(),loop_branch);
                      continue_next_lists->pop();
                   }
-                  utils_hw5::while_statement(*$3, $5, *$7, loop_branch, next_list);                  
+                  BPATCH(CodeBuffer::makelist({$3, FIRST}),*$4);
+                  utils_hw5::while_statement(*$4, $6, *$8, loop_branch, next_list);                  
                   //HW5~
-                  delete $4;
+                  delete $5;
                }
-               | WHILE LPAREN Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2 ELSE Marker2 Statement NMarker2      {
-                  check_bool_exp($4->type);
+               | WHILE LPAREN NMarker3 Marker5 Exp NMarker1 RPAREN Marker4 Statement NMarker2 ELSE Marker2 Statement NMarker2      {
+                  check_bool_exp($5->type);
                   //HW5:
-                  vector<pair<int,BranchLabelIndex>> loop_branch = *$9;
-                  vector<pair<int,BranchLabelIndex>> next_list = *$13;
+                  vector<pair<int,BranchLabelIndex>> loop_branch = *$10;
+                  vector<pair<int,BranchLabelIndex>> next_list = *$14;
                   if(!break_next_lists->empty()){
                      next_list = MERGE(break_next_lists->top(),next_list);
                      break_next_lists->pop();
@@ -311,9 +313,10 @@ Statement:
                      loop_branch = MERGE(continue_next_lists->top(),loop_branch);
                      continue_next_lists->pop();
                   }
-                  utils_hw5::while_else_statement(*$3, $5, *$7,*$11,loop_branch, next_list); 
+                  BPATCH(CodeBuffer::makelist({$3, FIRST}),*$4);
+                  utils_hw5::while_else_statement(*$4, $6, *$8,*$12,loop_branch, next_list); 
                   //HW5~
-                  delete $4;
+                  delete $5;
                }
                /* ^^^ Moved here If and While roles. solving 'Dangling Else' ^^^ */
                | LBRACE Marker7 Statements Marker3 RBRACE  {
@@ -335,7 +338,7 @@ Statement:
                   top_offsets() += 1;
                   // we need to check if the number is not larger then 255
                   if(!TYPE_BYTE.compare(*$1) && $4->number > 255){
-                     output::errorByteTooLarge(yylineno,to_string($4->number));
+                     //output::errorByteTooLarge(yylineno,to_string($4->number));
                      delete $1;
                      delete $2;
                      delete $4;
@@ -353,7 +356,7 @@ Statement:
                | ID ASSIGN Exp SC         {
                   assign_type_check(get_id_type(*$1, *tables), $3->type);
                   if(!name_exists_in_table(*$1,*tables)){
-                     output::errorUndef(yylineno,*$1);
+                     //output::errorUndef(yylineno,*$1);
                      delete $1;
                      delete $3;
                      exit(0);
@@ -361,7 +364,7 @@ Statement:
                   // we need to check if the number is not larger then 255
                   // TODO: check what to do with negative numbers ?
                   if(!TYPE_BYTE.compare(get_id_type(*$1, *tables)) && $3->number > 255){
-                     output::errorByteTooLarge(yylineno,to_string($3->number));
+                     //output::errorByteTooLarge(yylineno,to_string($3->number));
                      delete $1;
                      delete $3;
                      exit(0);
@@ -380,7 +383,7 @@ Statement:
                }
                | RETURN SC       {
                   if(get_current_function_return_type(*insertion_orders).compare(TYPE_VOID)){
-                     output::errorMismatch(yylineno);
+                     //output::errorMismatch(yylineno);
                      exit(0);
                   }
                   //HW5:
@@ -391,7 +394,7 @@ Statement:
                   string current_fun_return_type = get_current_function_return_type(*insertion_orders);
                   if(current_fun_return_type.compare($2->type) &&
                   (current_fun_return_type.compare(TYPE_INT) || ($2->type.compare(TYPE_BYTE)))){
-                     output::errorMismatch(yylineno);
+                     //output::errorMismatch(yylineno);
                      delete $2;
                      exit(0);
                   }
@@ -402,7 +405,7 @@ Statement:
                }
                | BREAK SC        {
                   if(!check_while_scope()){
-                     output::errorUnexpectedBreak(yylineno);
+                     //output::errorUnexpectedBreak(yylineno);
                      exit(0);
                   }
                   //HW5:
@@ -412,7 +415,7 @@ Statement:
                }
                | CONTINUE SC        {
                   if(!check_while_scope()){
-                     output::errorUnexpectedContinue(yylineno);
+                     //output::errorUnexpectedContinue(yylineno);
                      exit(0);
                   }
                   auto next_list = utils_hw5::create_unconditional_branch("continue");
@@ -423,6 +426,9 @@ Statement:
 ;
 NMarker1:      /*epsilon*/        {
       $$ = utils_hw5::gen_if_branch(($<expression>0)->register_number);
+}
+NMarker3:      /*epsilon*/        {
+      $$ = utils_hw5::gen_branch();
 }
 Marker2:       /*epsilon*/        {
       // this marker pushes a scope of type regular
@@ -438,14 +444,14 @@ Marker7:       /*epsilon*/        {
       push_regular_scope();
 }
 Marker3:       /*epsilon*/        {
-      output::endScope();
+      //output::endScope();
       print_map_by_order(tables->back(),insertion_orders->back());
       pop_tables();
       pop_offsets();
       pop_scope();
 }
 Marker8:       /*epsilon*/        {
-      output::endScope();
+      //output::endScope();
       if(get_current_function_return_type(*insertion_orders)==TYPE_VOID){
          utils_hw5::close_function(true);
       }else{
@@ -457,7 +463,7 @@ Marker8:       /*epsilon*/        {
       pop_scope();
 }
 NMarker2:       /*epsilon*/        {
-      output::endScope();
+      //output::endScope();
       print_map_by_order(tables->back(),insertion_orders->back());
       pop_tables();
       pop_offsets();
@@ -475,7 +481,7 @@ Marker4:       /*epsilon*/        {
 Call:          ID LPAREN ExpList RPAREN         {
                      // Check if the function name exists
                      if(!name_exists_in_table(*$1, *tables, true)) {                     
-                        output::errorUndefFunc(yylineno, *$1);
+                        //output::errorUndefFunc(yylineno, *$1);
                         delete $1;
                         delete $3;
                         exit(0);
@@ -488,7 +494,7 @@ Call:          ID LPAREN ExpList RPAREN         {
                      vector<string> given_args = split_str($3->type,",");
 
                      if(function_args.size() != given_args.size()){
-                        output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                        //output::errorPrototypeMismatch(yylineno,*$1,function_args);
                         delete $1;
                         delete $3;
                         exit(0);
@@ -496,7 +502,7 @@ Call:          ID LPAREN ExpList RPAREN         {
                      for(int i=0; i< function_args.size() || i< given_args.size(); i++){
                         if(function_args[i].compare(given_args[i]) &&
                            (function_args[i].compare(TYPE_INT) || given_args[i].compare(TYPE_BYTE))) {
-                              output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                              //output::errorPrototypeMismatch(yylineno,*$1,function_args);
                               delete $1;
                               delete $3;
                               exit(0);
@@ -513,14 +519,14 @@ Call:          ID LPAREN ExpList RPAREN         {
                | ID LPAREN RPAREN         {
                   // Check if the function name exists
                   if(!name_exists_in_table(*$1, *tables, true)) {
-                     output::errorUndefFunc(yylineno, *$1);
+                     //output::errorUndefFunc(yylineno, *$1);
                      delete $1;
                      exit(0);
                   }
                   string fun_sign = get_id_type(*$1 ,*tables);
                   vector<string> function_args = split_str(fun_sign.substr(0,fun_sign.find("->")),",");
                   if(!function_args.empty()){
-                     output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                     //output::errorPrototypeMismatch(yylineno,*$1,function_args);
                      delete $1;
                      exit(0);
                   }
@@ -647,7 +653,7 @@ Exp:           LPAREN Exp RPAREN       {
                }
                | NUM B       {
                   if($1 > 255){
-                     output::errorByteTooLarge(yylineno,to_string($1));
+                     //output::errorByteTooLarge(yylineno,to_string($1));
                   }
                   $$ = new Expression();
                   $$->register_number = utils_hw5::fresh_var();
@@ -806,7 +812,7 @@ string relop(string a, string b){
       // Both must be numbers
       return TYPE_BOOL;
    }
-   output::errorMismatch(yylineno);
+   //output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -817,7 +823,7 @@ string log_eq(string a, string b){
       // Both must be boolean
       return TYPE_BOOL;
    }
-   output::errorMismatch(yylineno);
+   //output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -831,7 +837,7 @@ string binop(string a, string b){
    || (!a.compare(TYPE_BYTE) && !b.compare(TYPE_INT))){
       return TYPE_INT;
    }
-   output::errorMismatch(yylineno);
+   //output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -841,7 +847,7 @@ void check_bool_exp(string exp_type){
       return;
    }
    if(exp_type.compare(TYPE_BOOL)){
-      output::errorMismatch(yylineno);
+      //output::errorMismatch(yylineno);
       exit(0);
    }
 }
@@ -872,7 +878,7 @@ int &top_offsets(){
 
 void insert(const string& name, const string& type,int offset, bool is_fun){
    if(name_exists_in_table(name,*tables)){
-      output::errorDef(yylineno,name);
+      //output::errorDef(yylineno,name);
       exit(0);
    }
    (tables->back()).insert({
@@ -883,7 +889,7 @@ void insert(const string& name, const string& type,int offset, bool is_fun){
 }
 
 void yyerror(const char*){
-   output::errorSyn(yylineno); 
+   //output::errorSyn(yylineno); 
 }
 
 void push_regular_scope(){
@@ -913,7 +919,7 @@ void assign_type_check(string var,string exp) {
    // the string compare function will return 0 (false) only if the string are the same
    if(var.compare(exp)){
       if(var.compare(TYPE_INT) || exp.compare(TYPE_BYTE))  {
-         output::errorMismatch(yylineno);
+         //output::errorMismatch(yylineno);
          exit(0);
       }
    }
@@ -950,7 +956,7 @@ string vectorToString(const std::vector<string>& argTypes) {
             return id_type;
       }
    }
-   output::errorUndef(yylineno, name);
+   //output::errorUndef(yylineno, name);
    exit(0);
 }
 
@@ -964,7 +970,7 @@ int get_id_offset(const string name, const vector<map<string, pair<string, int>>
             return offset;
       }
    }
-   output::errorUndef(yylineno, name);
+   //output::errorUndef(yylineno, name);
    exit(0);
 }
 
@@ -994,7 +1000,7 @@ void print_map_by_order(map<string, pair<string, int>> scope_map,queue<string> o
       name = clone->front();
       clone->pop();
       auto element = scope_map[name];
-      output::printID(name, element.second, element.first);
+      //output::printID(name, element.second, element.first);
    }
    delete clone;
 }
