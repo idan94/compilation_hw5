@@ -172,8 +172,8 @@ Marker1:       /*epsilon*/       {
       //allocating the stack for the global veriables
       // we assume that there will be less then 50 global veriables
       //TODO: check that, it is not written! 
-      current_stack_register->push(utils_hw5::fresh_var());
-      utils_hw5::allocate_new_stack(current_stack_register->top());
+      // current_stack_register->push(utils_hw5::fresh_var());
+      // utils_hw5::allocate_new_stack(current_stack_register->top());
        //HW5~
 }
 Funcs:         /*epsilon*/       {}
@@ -186,29 +186,31 @@ FuncDecl:      FuncDeclPart1 FuncDeclPart2 {
                   }
 ;
 FuncDeclPart1:  RetType ID LPAREN Formals RPAREN{      
-      auto function_args = split_str($4->type, ",");
-      insert(*$2,output::makeFunctionType(*$1, function_args),0, true);
-      push_tables();
-      push_offsets(top_offsets());
-      push_regular_scope();
-      
-      auto id_names = split_str($4->id_name,",");
-      auto types = split_str($4->type,",");
+                  auto function_args = split_str($4->type, ",");
+                  insert(*$2,output::makeFunctionType(*$1, function_args),0, true);
+                  push_tables();
+                  push_offsets(top_offsets());
+                  push_regular_scope();
+                  
+                  vector<string> arg_names = split_str($4->id_name,",");
+                  vector<string> arg_types = split_str($4->type,",");
 
-      assert(id_names.size() == types.size());
-      auto it_names = id_names.begin();
-      auto it_types = types.begin();
-      int offset = 0;
-      while (it_names != id_names.end() || it_types != types.end()) {
-         insert(*it_names, *it_types, --offset, false);
-         it_names++;
-         it_types++;
-      } 
-      delete $1;
-      delete $2;
-      delete $4;
+                  assert(arg_names.size() == arg_types.size());
+                  auto it_names = arg_names.begin();
+                  auto it_types = arg_types.begin();
+                  int offset = 0;
+                  while (it_names != arg_names.end() || it_types != arg_types.end()) {
+                     insert(*it_names, *it_types, --offset, false);
+                     it_names++;
+                     it_types++;
+                  } 
+                  utils_hw5::open_function(*$1, *$2, arg_names, arg_types, current_stack_register);
+                  delete $1;
+                  delete $2;
+                  delete $4;
 }
-FuncDeclPart2:  LBRACE Statements RBRACE Marker3 {}
+FuncDeclPart2:  LBRACE Statements RBRACE Marker8 {                  
+}
 RetType:       Type        {
                   $$ = new string(*$1);
                   delete $1;
@@ -437,6 +439,18 @@ Marker7:       /*epsilon*/        {
 }
 Marker3:       /*epsilon*/        {
       output::endScope();
+      print_map_by_order(tables->back(),insertion_orders->back());
+      pop_tables();
+      pop_offsets();
+      pop_scope();
+}
+Marker8:       /*epsilon*/        {
+      output::endScope();
+      if(get_current_function_return_type(*insertion_orders)==TYPE_VOID){
+         utils_hw5::close_function(true);
+      }else{
+         utils_hw5::close_function(false);
+      }
       print_map_by_order(tables->back(),insertion_orders->back());
       pop_tables();
       pop_offsets();

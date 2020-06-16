@@ -1,3 +1,9 @@
+int foo1(int x, int y){
+  bool g;
+  int h=x;
+  return 55;
+}
+
 void main() {
   int a = 15;
   int c = 20;
@@ -9,7 +15,4 @@ void main() {
     continue;
     c=5;
   }
- 
-  return;
-      
 }

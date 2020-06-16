@@ -7,7 +7,6 @@
 #include "bp.hpp"
 #include "structs.hpp"
 
-
 using namespace std;
 
 // Utils Methods:
@@ -212,6 +211,64 @@ namespace utils_hw5
         to_emit << make_reg(output_reg) << " = " << op_code << make_reg(input_reg_a) << ", " << make_reg(input_reg_b);
         EMIT(to_emit.str());
     }
+    void open_function(const string &return_type, const string &func_name, vector<string> arg_names,
+                       vector<string> arg_types, stack<int> *current_stack_register)
+    {
+        stringstream to_emit;
+        string return_type_code;
+        if (return_type == "VOID")
+        {
+            return_type_code = "void";
+        }
+        else
+        {
+            return_type_code = "i32";
+        }
+        to_emit << "// " << func_name << " function decleration:";
+        EMIT("");
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        to_emit << "define " << return_type_code << " @" << func_name << "(";
+        for (int i = 0; i < arg_names.size(); i++)
+        {
+            if (i == 0)
+                to_emit << "i32";
+            else
+                to_emit << ", i32";
+        }
+        to_emit << ") {";
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        for (int i = 0; i < arg_names.size(); i++)
+        {
+            to_emit << make_id_var(arg_names[i]) << " = alloca i32";
+            EMIT(to_emit.str());
+            to_emit.str("");
+
+            to_emit << "store i32 %" << i << ", i32* " << make_id_var(arg_names[i]);
+            EMIT(to_emit.str());
+            to_emit.str("");
+        }
+        current_stack_register->push(fresh_var());
+            to_emit << make_reg(current_stack_register->top()) << " = alloca i32, i32 50";
+            EMIT(to_emit.str());
+            to_emit.str("");
+    }
+    void close_function(bool is_void)
+    {
+        if (is_void)
+        {
+            EMIT("ret void");
+        }
+        else
+        {
+            EMIT("ret i32 0");
+        }
+        EMIT("}");
+        EMIT("");
+    }
     vector<pair<int, BranchLabelIndex>> *branch_to_next_list()
     {
         return new vector<pair<int, BranchLabelIndex>>(CodeBuffer::makelist({EMIT("br label @"), FIRST}));
@@ -289,13 +346,13 @@ namespace utils_hw5
         EMIT(to_emit.str());
     }
 
-    void allocate_new_stack(int reg_number)
-    {
-        stringstream to_emit;
-        to_emit << make_reg(reg_number) << " = aloca [50 x i32]";
-        EMIT(to_emit.str());
-    }
-    vector<pair<int, BranchLabelIndex>> create_unconditional_branch(const string& comment)
+    // void allocate_new_stack(int reg_number)
+    // {
+    //     stringstream to_emit;
+    //     to_emit << make_reg(reg_number) << " = aloca [50 x i32]";
+    //     EMIT(to_emit.str());
+    // }
+    vector<pair<int, BranchLabelIndex>> create_unconditional_branch(const string &comment)
     {
         return CodeBuffer::makelist({EMIT("br label @ //" + comment), FIRST});
     }
