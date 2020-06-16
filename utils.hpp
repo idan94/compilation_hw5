@@ -81,7 +81,7 @@ namespace utils_hw5
 
         to_emit << "br i1 " + make_reg(cond_temp_register) + ", label @, label @";
         int branch_pointer = EMIT(to_emit.str());
-        to_emit.str("");        
+        to_emit.str("");
         // Denominator equals zero, error ? :
         string div_by_zero_label = GEN_LABEL();
         EMIT("call void @print(i8* getelementptr ([23 x i8], [23 x i8]* @.div_zero_error, i32 0, i32 0))");
@@ -250,9 +250,9 @@ namespace utils_hw5
             to_emit.str("");
         }
         current_stack_register->push(fresh_var());
-            to_emit << make_reg(current_stack_register->top()) << " = alloca [50 x i32]";
-            EMIT(to_emit.str());
-            to_emit.str("");
+        to_emit << make_reg(current_stack_register->top()) << " = alloca [50 x i32]";
+        EMIT(to_emit.str());
+        to_emit.str("");
     }
     void close_function(bool is_void)
     {
@@ -370,6 +370,32 @@ namespace utils_hw5
         {
             to_emit << "ret i32 " << make_reg(return_exp_register);
         }
+        EMIT(to_emit.str());
+    }
+    void call_function(string function_label, vector<int> arg_regs, int output_register = -10)
+    {
+        stringstream to_emit;
+        string return_type_code;
+        if (output_register != -10)
+        {
+            to_emit << make_reg(output_register) << " = ";
+            return_type_code = "i32";
+        }
+        else
+        {
+            return_type_code = "void";
+        }
+
+        to_emit << "call " << return_type_code << " @" << function_label << "(";
+        if (arg_regs.size() > 0)
+        {
+            to_emit << "i32 " << make_reg(arg_regs[0]);
+        }
+        for (int i = 1; i < arg_regs.size(); i++)
+        {
+            to_emit << ", i32 " << make_reg(arg_regs[i]);
+        }
+        to_emit << ")";
         EMIT(to_emit.str());
     }
 

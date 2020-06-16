@@ -29,7 +29,14 @@ struct Expression
    string str;
    string op;
    int register_number;
-   Expression() : id_name{""}, type{""}, bool_value{false}, number{0}, str{""}, op{""}, register_number{-1} {}
+   vector<int> register_list;
+   Expression() : id_name{""}, type{""}, bool_value{false}, number{0}, str{""}, op{""}, register_number{-1},register_list{} {}
+};
+
+struct CallFunction{
+   string return_type;
+   int register_number;
+   CallFunction(string return_type_value) : return_type{return_type_value} , register_number{-1} {}
 };
 
 // struct Statement{

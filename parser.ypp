@@ -79,6 +79,7 @@
    string* return_type;
    vector<pair<int,BranchLabelIndex>>* branch_location;
    Expression* expression;
+   CallFunction* call_function;
    /* Statement* statment; */
    Formal* formal;
    string* label;
@@ -121,7 +122,7 @@
 %type <formal> Formals
 %type <formal> FormalsList
 %type <formal> FormalsDecl
-%type <return_type> Call
+%type <call_function> Call
 %type <expression> ExpList
 %type <type> Type
 /* %type <statment> Statement */
@@ -137,14 +138,14 @@
 
 Program:       Marker1 Funcs       {
    if(!name_exists_in_table("main",*tables,true)){
-      //output::errorMainMissing();
+      output::errorMainMissing();
       exit(0);
    }else{
       string fun_sign = get_id_type("main" ,*tables);
       string ret_type = fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1);
       string function_args = fun_sign.substr(0,fun_sign.find("->"));
       if(ret_type.compare(TYPE_VOID) || function_args.compare("()")){
-         //output::errorMainMissing();
+         output::errorMainMissing();
          exit(0);
       }
    }
@@ -338,7 +339,7 @@ Statement:
                   top_offsets() += 1;
                   // we need to check if the number is not larger then 255
                   if(!TYPE_BYTE.compare(*$1) && $4->number > 255){
-                     //output::errorByteTooLarge(yylineno,to_string($4->number));
+                     output::errorByteTooLarge(yylineno,to_string($4->number));
                      delete $1;
                      delete $2;
                      delete $4;
@@ -356,7 +357,7 @@ Statement:
                | ID ASSIGN Exp SC         {
                   assign_type_check(get_id_type(*$1, *tables), $3->type);
                   if(!name_exists_in_table(*$1,*tables)){
-                     //output::errorUndef(yylineno,*$1);
+                     output::errorUndef(yylineno,*$1);
                      delete $1;
                      delete $3;
                      exit(0);
@@ -364,7 +365,7 @@ Statement:
                   // we need to check if the number is not larger then 255
                   // TODO: check what to do with negative numbers ?
                   if(!TYPE_BYTE.compare(get_id_type(*$1, *tables)) && $3->number > 255){
-                     //output::errorByteTooLarge(yylineno,to_string($3->number));
+                     output::errorByteTooLarge(yylineno,to_string($3->number));
                      delete $1;
                      delete $3;
                      exit(0);
@@ -383,7 +384,7 @@ Statement:
                }
                | RETURN SC       {
                   if(get_current_function_return_type(*insertion_orders).compare(TYPE_VOID)){
-                     //output::errorMismatch(yylineno);
+                     output::errorMismatch(yylineno);
                      exit(0);
                   }
                   //HW5:
@@ -394,7 +395,7 @@ Statement:
                   string current_fun_return_type = get_current_function_return_type(*insertion_orders);
                   if(current_fun_return_type.compare($2->type) &&
                   (current_fun_return_type.compare(TYPE_INT) || ($2->type.compare(TYPE_BYTE)))){
-                     //output::errorMismatch(yylineno);
+                     output::errorMismatch(yylineno);
                      delete $2;
                      exit(0);
                   }
@@ -405,7 +406,7 @@ Statement:
                }
                | BREAK SC        {
                   if(!check_while_scope()){
-                     //output::errorUnexpectedBreak(yylineno);
+                     output::errorUnexpectedBreak(yylineno);
                      exit(0);
                   }
                   //HW5:
@@ -415,7 +416,7 @@ Statement:
                }
                | CONTINUE SC        {
                   if(!check_while_scope()){
-                     //output::errorUnexpectedContinue(yylineno);
+                     output::errorUnexpectedContinue(yylineno);
                      exit(0);
                   }
                   auto next_list = utils_hw5::create_unconditional_branch("continue");
@@ -481,7 +482,7 @@ Marker4:       /*epsilon*/        {
 Call:          ID LPAREN ExpList RPAREN         {
                      // Check if the function name exists
                      if(!name_exists_in_table(*$1, *tables, true)) {                     
-                        //output::errorUndefFunc(yylineno, *$1);
+                        output::errorUndefFunc(yylineno, *$1);
                         delete $1;
                         delete $3;
                         exit(0);
@@ -494,7 +495,7 @@ Call:          ID LPAREN ExpList RPAREN         {
                      vector<string> given_args = split_str($3->type,",");
 
                      if(function_args.size() != given_args.size()){
-                        //output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                        output::errorPrototypeMismatch(yylineno,*$1,function_args);
                         delete $1;
                         delete $3;
                         exit(0);
@@ -502,7 +503,7 @@ Call:          ID LPAREN ExpList RPAREN         {
                      for(int i=0; i< function_args.size() || i< given_args.size(); i++){
                         if(function_args[i].compare(given_args[i]) &&
                            (function_args[i].compare(TYPE_INT) || given_args[i].compare(TYPE_BYTE))) {
-                              //output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                              output::errorPrototypeMismatch(yylineno,*$1,function_args);
                               delete $1;
                               delete $3;
                               exit(0);
@@ -510,8 +511,15 @@ Call:          ID LPAREN ExpList RPAREN         {
                      }
 
                      /* Rule #5 hw's PDF */
-                     $$ = new string(ret_type);
+                     $$ = new CallFunction(ret_type);
                      // HW5:
+                     int output_register_number = -10;
+                     if(ret_type.compare(TYPE_VOID)){
+                        $$->register_number = utils_hw5::fresh_var();
+                        output_register_number = $$->register_number;
+                        
+                     }
+                     utils_hw5::call_function(*$1,$3->register_list,output_register_number);
                      // HW5~
                      delete $1;
                      delete $3;
@@ -519,39 +527,47 @@ Call:          ID LPAREN ExpList RPAREN         {
                | ID LPAREN RPAREN         {
                   // Check if the function name exists
                   if(!name_exists_in_table(*$1, *tables, true)) {
-                     //output::errorUndefFunc(yylineno, *$1);
+                     output::errorUndefFunc(yylineno, *$1);
                      delete $1;
                      exit(0);
                   }
                   string fun_sign = get_id_type(*$1 ,*tables);
+                  string ret_type = fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1);
                   vector<string> function_args = split_str(fun_sign.substr(0,fun_sign.find("->")),",");
                   if(!function_args.empty()){
-                     //output::errorPrototypeMismatch(yylineno,*$1,function_args);
+                     output::errorPrototypeMismatch(yylineno,*$1,function_args);
                      delete $1;
                      exit(0);
                   }
 
                   /* Rule #5 hw's PDF */
-                  $$ = new string(fun_sign.substr(fun_sign.find("->")+2, fun_sign.size()-1));
+                  $$ = new CallFunction(ret_type);
+                     // HW5:
+                     int output_register_number = -10;
+                     if(ret_type.compare(TYPE_VOID)){
+                        $$->register_number =utils_hw5::fresh_var();
+                        output_register_number = $$->register_number;
+                     }
+                     utils_hw5::call_function(*$1,{},output_register_number);
+                     // HW5~
                   delete $1;
                }
 ;
 ExpList:       Exp         {
                   $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
                   $$->type = $1->type;
                   // HW5:
+                  $$->register_list.push_back($1->register_number);
                   // HW5~
                   delete $1;
 }
                | Exp COMMA ExpList        {
-                  $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
+                  $$ = $3;
                   $$->type = ($1->type).append(",").append($3->type);
                   // HW5:
+                  $$->register_list.insert($$->register_list.begin(),$1->register_number);
                   // HW5~
                   delete $1;
-                  delete $3;
                }
 ;
 Type:          INT            {
@@ -636,9 +652,15 @@ Exp:           LPAREN Exp RPAREN       {
                }
                | Call         {
                   $$ = new Expression();
-                  $$->register_number = utils_hw5::fresh_var();
-                  $$->type = *$1;
+                  
+                  $$->type = $1->return_type;
                   // HW5:
+                  if(!$1->return_type.compare(TYPE_VOID)){
+                     //error
+                     output::errorMismatch(yylineno);
+                     exit(0);
+                  }
+                  $$->register_number = $1->register_number;
                   // HW5~
                   delete $1;
                }
@@ -653,7 +675,7 @@ Exp:           LPAREN Exp RPAREN       {
                }
                | NUM B       {
                   if($1 > 255){
-                     //output::errorByteTooLarge(yylineno,to_string($1));
+                     output::errorByteTooLarge(yylineno,to_string($1));
                   }
                   $$ = new Expression();
                   $$->register_number = utils_hw5::fresh_var();
@@ -812,7 +834,7 @@ string relop(string a, string b){
       // Both must be numbers
       return TYPE_BOOL;
    }
-   //output::errorMismatch(yylineno);
+   output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -823,7 +845,7 @@ string log_eq(string a, string b){
       // Both must be boolean
       return TYPE_BOOL;
    }
-   //output::errorMismatch(yylineno);
+   output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -837,7 +859,7 @@ string binop(string a, string b){
    || (!a.compare(TYPE_BYTE) && !b.compare(TYPE_INT))){
       return TYPE_INT;
    }
-   //output::errorMismatch(yylineno);
+   output::errorMismatch(yylineno);
    exit(0);
 }
 
@@ -847,7 +869,7 @@ void check_bool_exp(string exp_type){
       return;
    }
    if(exp_type.compare(TYPE_BOOL)){
-      //output::errorMismatch(yylineno);
+      output::errorMismatch(yylineno);
       exit(0);
    }
 }
@@ -878,7 +900,7 @@ int &top_offsets(){
 
 void insert(const string& name, const string& type,int offset, bool is_fun){
    if(name_exists_in_table(name,*tables)){
-      //output::errorDef(yylineno,name);
+      output::errorDef(yylineno,name);
       exit(0);
    }
    (tables->back()).insert({
@@ -889,7 +911,7 @@ void insert(const string& name, const string& type,int offset, bool is_fun){
 }
 
 void yyerror(const char*){
-   //output::errorSyn(yylineno); 
+   output::errorSyn(yylineno); 
 }
 
 void push_regular_scope(){
@@ -919,7 +941,7 @@ void assign_type_check(string var,string exp) {
    // the string compare function will return 0 (false) only if the string are the same
    if(var.compare(exp)){
       if(var.compare(TYPE_INT) || exp.compare(TYPE_BYTE))  {
-         //output::errorMismatch(yylineno);
+         output::errorMismatch(yylineno);
          exit(0);
       }
    }
@@ -956,7 +978,7 @@ string vectorToString(const std::vector<string>& argTypes) {
             return id_type;
       }
    }
-   //output::errorUndef(yylineno, name);
+   output::errorUndef(yylineno, name);
    exit(0);
 }
 
@@ -970,7 +992,7 @@ int get_id_offset(const string name, const vector<map<string, pair<string, int>>
             return offset;
       }
    }
-   //output::errorUndef(yylineno, name);
+   output::errorUndef(yylineno, name);
    exit(0);
 }
 

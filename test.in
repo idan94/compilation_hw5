@@ -14,4 +14,6 @@ void main() {
   else{
     a=10;
   }
+ int resulting = foo1(a,c);
+ printi(resulting);
 }
