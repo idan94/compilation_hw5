@@ -388,7 +388,7 @@ Statement:
                   // if(offset<0){
                   //    stack_register = current_stack_register->function_stack_register;
                   // }
-                  utils_hw5::assign_to_id(stack_register,offset,$3->register_number, current_stack_register->get_stack_counter(), current_stack_register->function_stack_register);
+                  utils_hw5::assign_to_id(stack_register,offset,$3->register_number, current_stack_register->function_stack_register);
                   //HW5~
                   delete $1;
                   delete $3;

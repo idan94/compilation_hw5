@@ -9,7 +9,7 @@ int foo1(int x, int y,int z){
   }
   printi(a); //1000
   printi(x); //100
-  printi(y); //1
+  printi(y); //2
   printi(z); //1
 }
 
@@ -22,7 +22,7 @@ void main() {
     a=100;
     printi(a); //100
   }
-  printi(a); //55
+  printi(a); //100
   
   print("HELLO!!!");
   print("HELLO222!!!");
