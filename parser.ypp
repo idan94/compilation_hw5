@@ -763,7 +763,7 @@ Exp:           LPAREN Exp RPAREN       {
                }
                |  Exp Only_branch_marker AND Only_lable_marker Exp Only_branch_marker   {
 
-                  //TODO: Nadav - fix
+                  //TODO: Nadav - fixed
                   $$ = new Expression(); 
                   string a_type = $1->type;
                   if(a_type.empty()){
@@ -781,24 +781,24 @@ Exp:           LPAREN Exp RPAREN       {
                   delete $1;
                   delete $5;
                }
-               | Exp OR Exp        {
+               | Exp Only_branch_marker OR Only_lable_marker Exp Only_branch_marker        {
                   //TODO: Nadav - fix
                   $$ = new Expression();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
                   }
-                  string b_type = $3->type;
+                  string b_type = $5->type;
                   if(b_type.empty()){
-                     b_type = get_id_type($3->id_name, *tables);
+                     b_type = get_id_type($5->id_name, *tables);
                   }
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"OR");
+                  utils_hw5::short_circit_or($$->register_number,$1->register_number,*$2,*$4,$5->register_number,*$6);
                   // HW5~
                   delete $1;
-                  delete $3;
+                  delete $5;
                }
                | Exp EQUALITY_RELOP Exp        {
                   $$ = new Expression();
