@@ -501,6 +501,78 @@ namespace utils_hw5
         to_emit << string_length + 1 << " x i8]* " << make_string_var(string_reg_number) << ", i32 0, i32 0))";
         EMIT(to_emit.str());
     }
+    void short_circit_and(int output_registr,
+                            int first_exp_reg,
+                            vector<pair<int, BranchLabelIndex>> branch_after_first_exp,
+                            string lable_of_second_exp,int second_exp_reg,
+                            vector<pair<int,BranchLabelIndex>> branch_after_second_exp){
+
+        // after calculating the first expression jump to short circit code
+        stringstream to_emit;
+        string short_circt_code_label = GEN_LABEL();
+        BPATCH(branch_after_first_exp,short_circt_code_label);
+
+        // create register for the result of the comparison  
+        int first_cmp_reg = fresh_var();
+
+        // alocate space on the stack (aside from the "stack") that will store the 
+        // result of the computation
+        int pointer_to_resulting = fresh_var();
+        to_emit << make_reg(pointer_to_resulting) << " = alloca  i32 ";
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        // check if to return false without computing the second expression
+        to_emit << make_reg(first_cmp_reg) <<  " = icmp i32 0, " << make_reg(first_exp_reg);
+        EMIT(to_emit.str());
+        to_emit.str("");
+        to_emit << "br i1 " << make_reg(first_cmp_reg)<< " lable @, lable " << lable_of_second_exp;
+
+        // save the branch location, it needs to jump to return false
+        vector<pair<int,BranchLabelIndex>> return_false_branch = CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
+        to_emit.str("");
+
+        // return false, becuase we can only use each register once we will store the value on the stack
+        // and after compliting the code segment we will load once the value from the stack
+        string return_false = GEN_LABEL();
+        BPATCH(return_false_branch,return_false);
+        // store "flase" in the stack at the location that has been allocated to save the result
+        to_emit << " store i32 %0, *i32" << make_reg(pointer_to_resulting);
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        // now branch to exit
+        to_emit << "br lable @";
+        vector<pair<int,BranchLabelIndex>> after_stored_false = CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
+        to_emit.str("");
+
+        // if reached this segment of code, the first value was true, that means we need to
+        // return the value of the second register
+        string return_second_expression_value = GEN_LABEL();
+        BPATCH(branch_after_second_exp,return_second_expression_value);
+        to_emit << " store i32 " << make_reg(second_exp_reg) << ", *i32" << make_reg(pointer_to_resulting);
+        EMIT(to_emit.str());
+        to_emit.str("");
+
+        // now branch to exit
+        to_emit << "br lable @";
+        vector<pair<int,BranchLabelIndex>> after_stored_second_exp = CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
+
+
+
+        // after the result has been savec on the location allocated on the stack,
+        // load it to the resulting register
+        string exit = GEN_LABEL();
+        BPATCH(MERGE(after_stored_second_exp,after_stored_false),exit);
+        to_emit << make_reg(output_registr) << " = load i32, i32*" << make_reg(pointer_to_resulting);
+        EMIT(to_emit.str());
+
+        
+
+        
+
+                            
+    }
 
 } // namespace utils_hw5
 

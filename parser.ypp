@@ -136,6 +136,8 @@
 %type <branch_location> NMarker2;
 %type <label_pointer> NMarker1;
 %type <label_pointer> NMarker3;
+%type <label> Only_lable_marker;
+%type <branch_location> Only_branch_marker;
 
 %%
 
@@ -179,6 +181,8 @@ Marker1:       /*epsilon*/       {
       //TODO: check that, it is not written! 
       // current_stack_register->push(utils_hw5::fresh_var());
       // utils_hw5::allocate_new_stack(current_stack_register->top());
+
+      // this function returns a pointer to the top of the stack
        //HW5~
 }
 Funcs:         /*epsilon*/       {}
@@ -490,6 +494,16 @@ Marker4:       /*epsilon*/        {
       push_while_scope();
       $$ = new string(GEN_LABEL());
 }
+
+Only_lable_marker:  /*epsilon*/  {
+   $$ = new string(GEN_LABEL());
+}
+Only_branch_marker: /*epsilon*/  {
+   $$ = new vector<pair<int,BranchLabelIndex>>();
+   $$ = utils_hw5::branch_to_next_list();
+}
+
+
 ;
 Call:          ID LPAREN ExpList RPAREN         {
                      // Check if the function name exists
@@ -747,24 +761,25 @@ Exp:           LPAREN Exp RPAREN       {
                   // HW5~
                   delete $2;
                }
-               | Exp AND Exp        {
+               |  Exp Only_branch_marker AND Only_lable_marker Exp Only_branch_marker   {
+
                   //TODO: Nadav - fix
                   $$ = new Expression(); 
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
                   }
-                  string b_type = $3->type;
+                  string b_type = $5->type;
                   if(b_type.empty()){
-                     b_type = get_id_type($3->id_name, *tables);
+                     b_type = get_id_type($5->id_name, *tables);
                   }
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::bit_by_bit_operand($$->register_number,$1->register_number,$3->register_number,"AND");
+                  utils_hw5::short_circit_and($$->register_number,$1->register_number,*$2,*$4,$5->register_number,*$6);
                   // HW5~
                   delete $1;
-                  delete $3;
+                  delete $5;
                }
                | Exp OR Exp        {
                   //TODO: Nadav - fix
