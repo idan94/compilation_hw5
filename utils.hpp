@@ -557,7 +557,7 @@ namespace utils_hw5
         // now branch to exit
         to_emit << "br lable @";
         vector<pair<int,BranchLabelIndex>> after_stored_second_exp = CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
-
+        to_emit.str("");
 
 
         // after the result has been savec on the location allocated on the stack,
@@ -624,7 +624,7 @@ namespace utils_hw5
         // now branch to exit
         to_emit << "br lable @";
         vector<pair<int,BranchLabelIndex>> after_stored_second_exp = CodeBuffer::makelist({EMIT(to_emit.str()),FIRST});
-
+        to_emit.str("");
 
 
         // after the result has been savec on the location allocated on the stack,
