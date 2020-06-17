@@ -23,4 +23,7 @@ void main() {
     printi(a); //100
   }
   printi(a); //55
+  
+  print("HELLO!!!");
+  print("HELLO222!!!");
 }

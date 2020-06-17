@@ -42,7 +42,7 @@ namespace utils_hw5
 
     string make_string_var(int reg_number)
     {
-        return "%string_var" + to_string(reg_number);
+        return "@.string_var" + to_string(reg_number);
     }
 
     void assign_number_to_register(int left_reg_number, int number_to_assign)
@@ -400,7 +400,7 @@ namespace utils_hw5
         to_emit << ", i32* " << make_var(id_offset, stack_number);
         stack<int> new_var_stack;
         new_var_stack.push(stack_number);
-        current_var_stack->insert(current_var_stack->begin()+id_offset, new_var_stack);
+        current_var_stack->insert(current_var_stack->begin() + id_offset, new_var_stack);
         EMIT(to_emit.str());
     }
 
@@ -492,6 +492,13 @@ namespace utils_hw5
             to_emit << ", i32 " << make_reg(arg_regs[i]);
         }
         to_emit << ")";
+        EMIT(to_emit.str());
+    }
+    void call_function_print(int string_reg_number, int string_length)
+    {
+        stringstream to_emit;
+        to_emit << "call void @print(i8* getelementptr ([" << string_length + 1 << " x i8], [";
+        to_emit << string_length + 1 << " x i8]* " << make_string_var(string_reg_number) << ", i32 0, i32 0))";
         EMIT(to_emit.str());
     }
 
