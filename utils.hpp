@@ -523,7 +523,7 @@ namespace utils_hw5
         to_emit.str("");
 
         // check if to return false without computing the second expression
-        to_emit << make_reg(first_cmp_reg) <<  " = icmp eq i32 0, " << make_reg(first_exp_reg);
+        to_emit << make_reg(first_cmp_reg) <<  " = icmp eq i32 %0, " << make_reg(first_exp_reg);
         EMIT(to_emit.str());
         to_emit.str("");
         to_emit << "br i1 " << make_reg(first_cmp_reg)<< " lable @, lable " << lable_of_second_exp;
@@ -590,7 +590,7 @@ namespace utils_hw5
         to_emit.str("");
 
         // check if to return true without computing the second expression
-        to_emit << make_reg(first_cmp_reg) <<  " = icmp ne i32 0, " << make_reg(first_exp_reg);
+        to_emit << make_reg(first_cmp_reg) <<  " = icmp ne i32 %0, " << make_reg(first_exp_reg);
         EMIT(to_emit.str());
         to_emit.str("");
         to_emit << "br i1 " << make_reg(first_cmp_reg)<< " lable @, lable " << lable_of_second_exp;
