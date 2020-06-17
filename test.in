@@ -1,19 +1,26 @@
-int foo1(int x, int y){
-  bool g;
-  int h=x;
-  return 55;
+int foo1(int x, int y,int z){
+  int a=1000;
+  x = 100;
+  {
+    y= 2;
+    printi(x); //100
+    printi(y); //2
+    printi(z); //1
+  }
+  printi(a); //1000
+  printi(x); //100
+  printi(y); //1
+  printi(z); //1
 }
 
 void main() {
-  int a = 10000;
-  int c = 20;
-  int d = a/c;
-  while(a>5){
-    a = a - 1;
+  foo1(1,1,1);
+  
+  int a = 55;
+  printi(a); //55
+  if(a>10){
+    a=100;
+    printi(a); //100
   }
-  else{
-    a=10;
-  }
- int resulting = foo1(a,c);
- printi(resulting);
+  printi(a); //55
 }

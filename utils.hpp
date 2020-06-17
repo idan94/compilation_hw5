@@ -12,6 +12,8 @@ using namespace std;
 // Utils Methods:
 namespace utils_hw5
 {
+    vector<stack<int>> *current_function_args_stack;
+    vector<stack<int>> *current_var_stack;
     int reg_count = 0;
 
     int fresh_var()
@@ -24,9 +26,18 @@ namespace utils_hw5
         return "%reg" + to_string(reg_number);
     }
 
-    string make_id_var(const string &id_number)
+    // string make_id_var(const string &id_number)
+    // {
+    //     return "%var_" + id_number;
+    // }
+
+    string make_var(int var_offset, int stack_number)
     {
-        return "%var_" + id_number;
+        if (var_offset < 0)
+        {
+            return "%arg_var" + to_string(-var_offset - 1) + "_stack" + to_string(stack_number);
+        }
+        return "%var" + to_string(var_offset) + "_scope" + to_string(stack_number);
     }
 
     string make_string_var(int reg_number)
@@ -149,19 +160,21 @@ namespace utils_hw5
         CodeBuffer::instance().printCodeBuffer();
         cout << endl;
     }
-    void assign_id(const string &id_reg, int right_reg)
+    void load_id_to_reg(int id_offset, int reg_number)
     {
         stringstream to_emit;
-        to_emit << "store i32 " << make_reg(right_reg) << ", i32 " << make_id_var(id_reg);
+        int stack_number;
+        if (id_offset < 0)
+        {
+            stack_number = ((*current_function_args_stack)[-id_offset - 1]).top();
+        }
+        else
+        {
+            stack_number = ((*current_var_stack)[id_offset]).top();
+        }
+        to_emit << make_reg(reg_number) << " = load i32, i32* " << make_var(id_offset, stack_number);
         EMIT(to_emit.str());
-    }
-    void load_id_to_reg(const string &id_reg, int reg_number)
-    {
-        stringstream to_emit;
-        //TODO: fix this, the id's are in the table on the stack, they need to be alocated using the
-        // aloca function
-        to_emit << make_reg(reg_number) << " = load i32, i32* " << make_id_var(id_reg);
-        EMIT(to_emit.str());
+        // }
     }
     void start_llvm_code()
     {
@@ -209,8 +222,48 @@ namespace utils_hw5
         to_emit << make_reg(output_reg) << " = " << op_code << make_reg(input_reg_a) << ", " << make_reg(input_reg_b);
         EMIT(to_emit.str());
     }
-    void open_function(const string &return_type, const string &func_name, vector<string> arg_names,
-                       vector<string> arg_types, stack<int> *current_stack_register)
+    void open_scope(CurrentStackRegister *current_stack_register, bool with_brace)
+    {
+        stringstream to_emit;
+
+        current_stack_register->push(fresh_var());
+        if (with_brace)
+        {
+            to_emit << "{    ";
+        }
+        to_emit << "; Open scope(" << to_string(current_stack_register->stack_counter) << ")";
+        EMIT(to_emit.str());
+        to_emit.str("");
+        to_emit << make_reg(current_stack_register->top()) << " = alloca [50 x i32]   ; allocate stack for the new scope";
+        EMIT(to_emit.str());
+    }
+    void close_scope(CurrentStackRegister *current_stack_register, bool with_brace)
+    {
+        stringstream to_emit;
+        if (with_brace)
+        {
+            to_emit << "}    ";
+        }
+        to_emit << "; Close scope(" << to_string(current_stack_register->stack_counter) << ")";
+        EMIT(to_emit.str());
+        to_emit.str("");
+        for (int i = 0; i < current_function_args_stack->size(); i++)
+        {
+            if ((*current_function_args_stack)[i].top() == current_stack_register->stack_counter)
+            {
+                (*current_function_args_stack)[i].pop();
+            }
+        }
+        for (int i = 0; i < current_var_stack->size(); i++)
+        {
+            if ((*current_var_stack)[i].top() == current_stack_register->stack_counter)
+            {
+                (*current_var_stack)[i].pop();
+            }
+        }
+        current_stack_register->pop();
+    }
+    void open_function(const string &return_type, const string &func_name, int args_number, CurrentStackRegister *current_stack_register)
     {
         stringstream to_emit;
         string return_type_code;
@@ -228,33 +281,39 @@ namespace utils_hw5
         to_emit.str("");
 
         to_emit << "define " << return_type_code << " @" << func_name << "(";
-        for (int i = 0; i < arg_names.size(); i++)
+        for (int i = 0; i < args_number; i++)
         {
             if (i == 0)
                 to_emit << "i32";
             else
                 to_emit << ", i32";
         }
-        to_emit << ") {";
+        to_emit << ")";
         EMIT(to_emit.str());
         to_emit.str("");
 
-        for (int i = 0; i < arg_names.size(); i++)
+        open_scope(current_stack_register, true);
+        EMIT("; Arguments allocation:");
+        current_function_args_stack = new vector<stack<int>>();
+        current_var_stack = new vector<stack<int>>();
+        stack<int> new_stack;
+        for (int i = args_number - 1; i >= 0; i--)
         {
-            to_emit << make_id_var(arg_names[i]) << " = alloca i32";
+            to_emit << make_var(-i - 1, current_stack_register->stack_counter) << " = alloca i32";
             EMIT(to_emit.str());
             to_emit.str("");
 
-            to_emit << "store i32 %" << i << ", i32* " << make_id_var(arg_names[i]);
+            to_emit << "store i32 %" << i << ", i32* " << make_var(-i - 1, current_stack_register->stack_counter);
             EMIT(to_emit.str());
             to_emit.str("");
+            stack<int> new_funciton_args_stack;
+            new_funciton_args_stack.push(current_stack_register->stack_counter);
+            current_function_args_stack->push_back(new_funciton_args_stack);
         }
-        current_stack_register->push(fresh_var());
-        to_emit << make_reg(current_stack_register->top()) << " = alloca [50 x i32]";
-        EMIT(to_emit.str());
-        to_emit.str("");
+        EMIT("");
+        EMIT("; Function body:");
     }
-    void close_function(bool is_void)
+    void close_function(bool is_void, CurrentStackRegister *current_stack_register)
     {
         if (is_void)
         {
@@ -264,8 +323,9 @@ namespace utils_hw5
         {
             EMIT("ret i32 0");
         }
-        EMIT("}");
-        EMIT("");
+        close_scope(current_stack_register, true);
+        delete current_function_args_stack;
+        delete current_var_stack;
     }
     vector<pair<int, BranchLabelIndex>> *branch_to_next_list()
     {
@@ -321,11 +381,11 @@ namespace utils_hw5
         string new_block_label = GEN_LABEL();
         BPATCH(next_list, new_block_label);
     }
-    void store_at_offset(int func_stack_pointer, int offset, const string &id_name, int register_number, bool is_initilized = true)
+    void store_at_offset(int func_stack_pointer, int stack_number, int id_offset, int register_number, bool is_initilized = true)
     {
         stringstream to_emit;
-        to_emit << make_id_var(id_name) << " = getelementptr [50 x i32], [50 x i32]* ";
-        to_emit << make_reg(func_stack_pointer) << ", i32 0, i32 " << offset;
+        to_emit << make_var(id_offset, stack_number) << " = getelementptr [50 x i32], [50 x i32]* ";
+        to_emit << make_reg(func_stack_pointer) << ", i32 0, i32 " << id_offset;
         EMIT(to_emit.str());
         to_emit.str("");
 
@@ -337,14 +397,50 @@ namespace utils_hw5
         {
             to_emit << "store i32 " << 0;
         }
-        to_emit << ", i32* " << make_id_var(id_name);
+        to_emit << ", i32* " << make_var(id_offset, stack_number);
+        stack<int> new_var_stack;
+        new_var_stack.push(stack_number);
+        current_var_stack->insert(current_var_stack->begin()+id_offset, new_var_stack);
         EMIT(to_emit.str());
     }
 
-    void assign_to_id(const string &id_name, int register_number)
+    void assign_to_id(int func_stack_pointer, int id_offset, int register_number, int stack_number, int function_stack_register)
     {
         stringstream to_emit;
-        to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_id_var(id_name);
+        if (id_offset < 0)
+        {
+            if ((*current_function_args_stack)[-id_offset - 1].top() == stack_number)
+            {
+                to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_var(id_offset, stack_number);
+            }
+            else
+            {
+                to_emit << make_var(id_offset, stack_number) << " = alloca i32";
+                EMIT(to_emit.str());
+                to_emit.str("");
+
+                to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_var(id_offset, stack_number);
+                (*current_function_args_stack)[-id_offset - 1].push(stack_number);
+            }
+        }
+        else
+        {
+            if ((*current_var_stack)[id_offset].top() == stack_number)
+            {
+                to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_var(id_offset, stack_number);
+            }
+            else
+            {
+                to_emit << make_var(id_offset, stack_number) << " = getelementptr [50 x i32], [50 x i32]* ";
+                to_emit << make_reg(func_stack_pointer) << ", i32 0, i32 " << id_offset + 1;
+                EMIT(to_emit.str());
+                to_emit.str("");
+
+                to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_var(id_offset, stack_number);
+                (*current_var_stack)[id_offset].push(stack_number);
+            }
+        }
+
         EMIT(to_emit.str());
     }
 

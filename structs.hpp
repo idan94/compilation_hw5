@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <stack>
 #include "bp.hpp"
 
 using namespace std;
@@ -37,6 +38,27 @@ struct CallFunction{
    string return_type;
    int register_number;
    CallFunction(string return_type_value) : return_type{return_type_value} , register_number{-1} {}
+};
+
+struct CurrentStackRegister{
+   stack<int> stack_register_stack;
+   int stack_counter;
+   int function_stack_register;
+   CurrentStackRegister() : stack_counter{0} {}
+   int top(){
+      return stack_register_stack.top();
+   }
+   void pop(){
+      stack_register_stack.pop();
+   }
+   void push(int stack_register_number){
+      if(stack_register_stack.empty()){
+         // Means its the function scope
+         function_stack_register = stack_register_number;
+      }
+      stack_register_stack.push(stack_register_number);
+      stack_counter++;
+   }
 };
 
 // struct Statement{
