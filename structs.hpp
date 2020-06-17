@@ -42,6 +42,7 @@ struct CallFunction{
 
 struct CurrentStackRegister{
    stack<int> stack_register_stack;
+   stack<int> stack_stack_counter;
    int stack_counter;
    int function_stack_register;
    CurrentStackRegister() : stack_counter{0} {}
@@ -50,6 +51,7 @@ struct CurrentStackRegister{
    }
    void pop(){
       stack_register_stack.pop();
+      stack_stack_counter.pop();
    }
    void push(int stack_register_number){
       if(stack_register_stack.empty()){
@@ -57,7 +59,13 @@ struct CurrentStackRegister{
          function_stack_register = stack_register_number;
       }
       stack_register_stack.push(stack_register_number);
-      stack_counter++;
+      stack_stack_counter.push(++stack_counter);
+   }
+   bool empty(){
+      return stack_register_stack.empty();
+   }
+   int get_stack_counter(){
+      return stack_stack_counter.top();
    }
 };
 

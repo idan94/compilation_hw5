@@ -87,6 +87,7 @@
    Formal* formal;
    string* label;
    int label_pointer;
+   vector<pair<int,BranchLabelIndex>>* short_circuit_list; //for short_circuit OR/AND
 }
 
 %nonassoc VOID    
@@ -120,6 +121,8 @@
 %nonassoc <number> NUM     
 %nonassoc <str> STRING  
 
+%type <short_circuit_list> ShortCircuitAnd;
+%type <short_circuit_list> ShortCircuitOr;
 %type <expression> Exp
 %type <type> RetType
 %type <formal> Formals
@@ -136,8 +139,7 @@
 %type <branch_location> NMarker2;
 %type <label_pointer> NMarker1;
 %type <label_pointer> NMarker3;
-%type <label> Only_lable_marker;
-%type <branch_location> Only_branch_marker;
+
 
 %%
 
@@ -334,7 +336,7 @@ Statement:
                   //HW5:
                   int offset = get_id_offset(*$2,*tables);
                   int stack_number = get_id_last_stack(*$2,*tables);
-                  utils_hw5::store_at_offset(current_stack_register->top(),current_stack_register->stack_counter,offset,-1,false);
+                  utils_hw5::store_at_offset(current_stack_register->top(),current_stack_register->get_stack_counter(),offset,-1,false);
 
                   //HW5~
                   top_offsets() += 1;
@@ -356,7 +358,7 @@ Statement:
                   //HW5:
                   int offset = get_id_offset(*$2,*tables);
                   int stack_number = get_id_last_stack(*$2,*tables);
-                  utils_hw5::store_at_offset(current_stack_register->top(),current_stack_register->stack_counter,offset,$4->register_number);
+                  utils_hw5::store_at_offset(current_stack_register->top(),current_stack_register->get_stack_counter(),offset,$4->register_number);
                   //HW5~
 
                   delete $1;
@@ -386,7 +388,7 @@ Statement:
                   // if(offset<0){
                   //    stack_register = current_stack_register->function_stack_register;
                   // }
-                  utils_hw5::assign_to_id(stack_register,offset,$3->register_number, current_stack_register->stack_counter, current_stack_register->function_stack_register);
+                  utils_hw5::assign_to_id(stack_register,offset,$3->register_number, current_stack_register->get_stack_counter(), current_stack_register->function_stack_register);
                   //HW5~
                   delete $1;
                   delete $3;
@@ -494,15 +496,12 @@ Marker4:       /*epsilon*/        {
       push_while_scope();
       $$ = new string(GEN_LABEL());
 }
-
-Only_lable_marker:  /*epsilon*/  {
-   $$ = new string(GEN_LABEL());
+ShortCircuitAnd:       /*epsilon*/        {
+      $$ = new vector<pair<int,BranchLabelIndex>>(utils_hw5::start_short_circuit_and($<expression>-1->register_number));
 }
-Only_branch_marker: /*epsilon*/  {
-   $$ = new vector<pair<int,BranchLabelIndex>>();
-   $$ = utils_hw5::branch_to_next_list();
+ShortCircuitOr:       /*epsilon*/        {
+      $$ = new vector<pair<int,BranchLabelIndex>>(utils_hw5::start_short_circuit_or($<expression>-1->register_number));
 }
-
 
 ;
 Call:          ID LPAREN ExpList RPAREN         {
@@ -761,44 +760,43 @@ Exp:           LPAREN Exp RPAREN       {
                   // HW5~
                   delete $2;
                }
-               |  Exp Only_branch_marker AND Only_lable_marker Exp Only_branch_marker   {
-
-                  //TODO: Nadav - fixed
-                  $$ = new Expression(); 
-                  string a_type = $1->type;
-                  if(a_type.empty()){
-                     a_type = get_id_type($1->id_name, *tables);
-                  }
-                  string b_type = $5->type;
-                  if(b_type.empty()){
-                     b_type = get_id_type($5->id_name, *tables);
-                  }
-                  $$->type = log_eq(a_type, b_type);
-                  // HW5:
-                  $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::short_circit_and($$->register_number,$1->register_number,*$2,*$4,$5->register_number,*$6);
-                  // HW5~
-                  delete $1;
-                  delete $5;
-               }
-               | Exp Only_branch_marker OR Only_lable_marker Exp Only_branch_marker        {
-                  //TODO: Nadav - fix
+               |  Exp AND ShortCircuitAnd Exp    {
                   $$ = new Expression();
                   string a_type = $1->type;
                   if(a_type.empty()){
                      a_type = get_id_type($1->id_name, *tables);
                   }
-                  string b_type = $5->type;
+                  string b_type = $4->type;
                   if(b_type.empty()){
-                     b_type = get_id_type($5->id_name, *tables);
+                     b_type = get_id_type($4->id_name, *tables);
                   }
                   $$->type = log_eq(a_type, b_type);
                   // HW5:
                   $$->register_number = utils_hw5::fresh_var();
-                  utils_hw5::short_circit_or($$->register_number,$1->register_number,*$2,*$4,$5->register_number,*$6);
+                  utils_hw5::close_short_circit_and($4->register_number, *$3, $$->register_number);
                   // HW5~
                   delete $1;
-                  delete $5;
+                  delete $3;
+                  delete $4;
+               }
+               | Exp  OR ShortCircuitOr Exp      {
+                  $$ = new Expression();
+                  string a_type = $1->type;
+                  if(a_type.empty()){
+                     a_type = get_id_type($1->id_name, *tables);
+                  }
+                  string b_type = $4->type;
+                  if(b_type.empty()){
+                     b_type = get_id_type($4->id_name, *tables);
+                  }
+                  $$->type = log_eq(a_type, b_type);
+                  // HW5:
+                  $$->register_number = utils_hw5::fresh_var();
+                  utils_hw5::close_short_circit_or($4->register_number, *$3, $$->register_number);
+                  // HW5~
+                  delete $1;
+                  delete $3;
+                  delete $4;
                }
                | Exp EQUALITY_RELOP Exp        {
                   $$ = new Expression();
@@ -1033,7 +1031,7 @@ int get_id_offset(const string name, const vector<map<string, pair<string, int>>
 }
 
 int get_id_last_stack(const string name, const vector<map<string, pair<string, int>>> &tables){
-   int stack_number = current_stack_register->stack_counter  -1;
+   int stack_number = current_stack_register->get_stack_counter()  -1;
    for(auto map_iterator = tables.end()-1 ; map_iterator >= tables.begin() ; map_iterator-- ){
       auto id_iterator= map_iterator->find(name);
       if (id_iterator != map_iterator->end()) {
