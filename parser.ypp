@@ -31,9 +31,10 @@
    vector<queue<string>>* insertion_orders;
    stack<int>* offsets;
    stack<vector<pair<int, BranchLabelIndex>>>* break_next_lists;
-   stack<vector<pair<int, BranchLabelIndex>>>* continue_next_lists;
+   stack<string>* continue_labels;
    map<string,pair<string, int>>* t;
    CurrentStackRegister* current_stack_register;
+
 
    int yylex();
    void yyerror(const char*);
@@ -268,6 +269,9 @@ FormalsDecl:   Type ID        {
 
 Marker5:      { /*epsilon*/ 
                   $$ = new string(GEN_LABEL());
+                  continue_labels->push(*$$);
+                  vector<pair<int, BranchLabelIndex>> new_vector;
+                  break_next_lists->push(new_vector);
 }
 ;
 Statements:    Statement        {
@@ -298,16 +302,11 @@ Statement:
                   //HW5:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$10;
                   vector<pair<int,BranchLabelIndex>> next_list;
-                  if(!break_next_lists->empty()){
-                     next_list = break_next_lists->top();
-                     break_next_lists->pop();
-                  }
-                  if(!continue_next_lists->empty()){
-                     loop_branch = MERGE(continue_next_lists->top(),loop_branch);
-                     continue_next_lists->pop();
-                  }
+                  next_list = MERGE(break_next_lists->top(),next_list);
                   BPATCH(CodeBuffer::makelist({$3, FIRST}),*$4);
                   utils_hw5::while_statement(*$4, $6, *$8, loop_branch, next_list);                  
+                  continue_labels->pop();
+                  break_next_lists->pop();
                   //HW5~
                   delete $5;
                }
@@ -316,16 +315,11 @@ Statement:
                   //HW5:
                   vector<pair<int,BranchLabelIndex>> loop_branch = *$10;
                   vector<pair<int,BranchLabelIndex>> next_list = *$14;
-                  if(!break_next_lists->empty()){
-                     next_list = MERGE(break_next_lists->top(),next_list);
-                     break_next_lists->pop();
-                  }
-                  if(!continue_next_lists->empty()){
-                     loop_branch = MERGE(continue_next_lists->top(),loop_branch);
-                     continue_next_lists->pop();
-                  }
+                  next_list = MERGE(break_next_lists->top(),next_list);
                   BPATCH(CodeBuffer::makelist({$3, FIRST}),*$4);
                   utils_hw5::while_else_statement(*$4, $6, *$8,*$12,loop_branch, next_list); 
+                  continue_labels->pop();
+                  break_next_lists->pop();
                   //HW5~
                   delete $5;
                }
@@ -433,8 +427,12 @@ Statement:
                      exit(0);
                   }
                   //HW5:
-                  auto next_list = utils_hw5::create_unconditional_branch("break");
-                  break_next_lists->push(next_list);
+                  vector<pair<int, BranchLabelIndex>> break_branch = utils_hw5::create_unconditional_branch("break");
+                  if(break_next_lists->top().size() == 0){
+                     break_next_lists->top() = break_branch;
+                  }else{
+                     break_next_lists->top() = MERGE(break_next_lists->top(),break_branch);
+                  }
                   //HW5~
                }
                | CONTINUE SC        {
@@ -442,8 +440,8 @@ Statement:
                      output::errorUnexpectedContinue(yylineno);
                      exit(0);
                   }
-                  auto next_list = utils_hw5::create_unconditional_branch("continue");
-                  continue_next_lists->push(next_list);
+                  string while_label = continue_labels->top();
+                  utils_hw5::create_continue_branch(while_label);
                   //HW5:
                   //HW5~
                }
@@ -460,6 +458,7 @@ Marker2:       /*epsilon*/        {
       push_offsets(top_offsets());
       push_regular_scope();
       $$ = new string(GEN_LABEL());
+      utils_hw5::open_scope(current_stack_register, false);
 }
 Marker7:       /*epsilon*/        {
       // this marker pushes a scope of type regular
@@ -495,13 +494,16 @@ NMarker2:       /*epsilon*/        {
       pop_offsets();
       pop_scope();
       $$ = utils_hw5::branch_to_next_list();
+      utils_hw5::close_scope(current_stack_register, false);
 }
+
 Marker4:       /*epsilon*/        {
       //this marker pushed a scope of type while
       push_tables();
       push_offsets(top_offsets());
       push_while_scope();
       $$ = new string(GEN_LABEL());
+      utils_hw5::open_scope(current_stack_register, false);
 }
 ShortCircuitAnd:       /*epsilon*/        {
       $$ = new vector<pair<int,BranchLabelIndex>>(utils_hw5::start_short_circuit_and($<expression>-1->register_number));
@@ -961,7 +963,7 @@ void yyerror(const char*){
 }
 
 void push_regular_scope(){
-   auto new_scope = Scope(WHILE_SCOPE);
+   auto new_scope = Scope(REGULAR_SCOPE);
    scopes->push_back(new_scope);
 }
 
@@ -981,6 +983,8 @@ bool check_while_scope(){
    }
    return false;
 }
+
+
 
 
 void assign_type_check(string var,string exp) {
@@ -1111,13 +1115,13 @@ int main(){
    scopes = new vector<Scope>();
    current_stack_register = new CurrentStackRegister();
    break_next_lists = new stack<vector<pair<int, BranchLabelIndex>>>();
-   continue_next_lists = new stack<vector<pair<int, BranchLabelIndex>>>();
+   continue_labels = new stack<string>();
    auto return_parse = yyparse();
    delete tables;
    delete offsets;
    delete insertion_orders;
    delete scopes;
+   delete continue_labels;
    delete break_next_lists;
-   delete continue_next_lists;
    return return_parse;
 }

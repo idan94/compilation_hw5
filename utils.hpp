@@ -398,16 +398,16 @@ namespace utils_hw5
         to_emit << "store i32 " << make_reg(register_number) << ", i32* " << make_var(id_offset, scope_number);
         EMIT(to_emit.str());
     }
-
-    // void allocate_new_stack(int reg_number)
-    // {
-    //     stringstream to_emit;
-    //     to_emit << make_reg(reg_number) << " = aloca [50 x i32]";
-    //     EMIT(to_emit.str());
-    // }
     vector<pair<int, BranchLabelIndex>> create_unconditional_branch(const string &comment)
     {
         return CodeBuffer::makelist({EMIT("br label @ ;" + comment), FIRST});
+    }
+
+    void create_continue_branch(const string &while_label)
+    {
+        stringstream to_emit;
+        to_emit << "br label %" << while_label << " ;continue";
+        EMIT(to_emit.str());
     }
 
     void return_statement(int return_exp_register = (-2))
