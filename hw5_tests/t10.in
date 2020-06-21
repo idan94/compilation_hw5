@@ -1,0 +1,26 @@
+int foo(){
+  print("Print this");
+  return 10;
+}
+
+int fooNot(){
+  print("Dont print this");
+  return 10;
+}
+
+void main() {
+  int x = 1;
+  while(x<=5){
+    print("Print me 3 times");
+    printi(x);
+    if(x==3){
+      foo();
+      break;
+    }        
+    x=x+1;
+  }
+  else{
+    print("Im else block, DONT PRINT ME");
+  }
+  foo();
+}

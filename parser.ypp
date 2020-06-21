@@ -60,6 +60,7 @@
    void push_while_scope();
    bool check_while_scope();
    void assign_type_check(string var,string exp);
+   bool is_id_function(const string& name, const vector<map<string, pair<string, int>>> &tables);
    string get_id_type(const string name, const vector<map<string, pair<string, int>>> &tables);
    int get_id_offset(const string name, const vector<map<string, pair<string, int>>> &tables);
    int get_id_dest_from_last_scope(const string name, const vector<map<string, pair<string, int>>> &tables);
@@ -366,6 +367,12 @@ Statement:
                   delete $4;
                }
                | ID ASSIGN Exp SC         {
+                  if(is_id_function(*$1, *tables)){
+                     output::errorUndef(yylineno,*$1);
+                     delete $1;
+                     delete $3;
+                     exit(0);
+                  }
                   assign_type_check(get_id_type(*$1, *tables), $3->type);
                   if(!name_exists_in_table(*$1,*tables)){
                      output::errorUndef(yylineno,*$1);
@@ -886,6 +893,10 @@ string log_eq(string a, string b){
 
 /* Rule #10 hw's PDF */
 string binop(string a, string b){
+   if(!a.compare(TYPE_STRING) || !b.compare(TYPE_STRING)){
+      output::errorMismatch(yylineno);
+      exit(0);
+   }
    if(!a.compare(b)){
       /* Both expressions have the same type */
       return a;
@@ -1042,6 +1053,11 @@ int get_id_last_stack(const string name, const vector<map<string, pair<string, i
    }
    output::errorUndef(yylineno, name);
    exit(0);
+}
+
+bool is_id_function(const string& name, const vector<map<string, pair<string, int>>> &tables){
+   string type = get_id_type(name, tables);
+   return (type.find("->") != string::npos);
 }
 
 int get_id_dest_from_last_scope(const string name, const vector<map<string, pair<string, int>>> &tables){
