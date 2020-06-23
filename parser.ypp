@@ -447,6 +447,7 @@ Statement:
                }
 ;
 NMarker1:      /*epsilon*/        {
+      check_bool_exp(($<expression>0)->type);
       $$ = utils_hw5::gen_if_branch(($<expression>0)->register_number);
 }
 NMarker3:      /*epsilon*/        {
